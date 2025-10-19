@@ -1,0 +1,19 @@
+[Unit]
+Description=LMRC Digital Noticeboard
+Documentation=https://github.com/your-org/lmrc-noticeboard
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/lmrc-noticeboard
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /home/pi/lmrc-noticeboard/server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=lmrc-noticeboard
+
+[Install]
+WantedBy=multi-user.target

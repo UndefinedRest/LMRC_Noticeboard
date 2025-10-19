@@ -1,0 +1,111 @@
+{
+  "display": {
+    "name": "LMRC Noticeboard",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "layout": {
+      "leftPanelWidth": 25,
+      "centerPanelWidth": 50,
+      "rightPanelWidth": 25
+    }
+  },
+  
+  "timing": {
+    "heroRotationSeconds": 15,
+    "newsPanelRotationSeconds": 45,
+    "sponsorRotationSeconds": 30,
+    "dataRefreshSeconds": 60,
+    "weatherRefreshMinutes": 30
+  },
+  
+  "branding": {
+    "clubName": "Lake Macquarie Rowing Club",
+    "clubLogoPath": "/assets/logo.png",
+    "clubColors": {
+      "primary": "#003366",
+      "secondary": "#0066CC",
+      "accent": "#FFD700",
+      "background": "#F5F5F5",
+      "text": "#333333"
+    },
+    "tagline": "Rowing Excellence Since 1963"
+  },
+  
+  "socialMedia": {
+    "facebook": {
+      "enabled": true,
+      "handle": "@LakeMacquarieRC",
+      "url": "https://facebook.com/lakemacquarierc"
+    },
+    "instagram": {
+      "enabled": true,
+      "handle": "@lmrc_rowing",
+      "url": "https://instagram.com/lmrc_rowing"
+    }
+  },
+  
+  "sponsors": [
+    {
+      "name": "Sponsor 1",
+      "logoPath": "/assets/sponsors/sponsor1.png",
+      "url": "https://example.com"
+    },
+    {
+      "name": "Sponsor 2",
+      "logoPath": "/assets/sponsors/sponsor2.png",
+      "url": "https://example.com"
+    }
+  ],
+  
+  "gallery": {
+    "maxAlbumsToDisplay": 10,
+    "publicOnly": true,
+    "maxPhotosPerAlbum": 20,
+    "prioritizeRecent": true
+  },
+  
+  "events": {
+    "maxEventsToDisplay": 7,
+    "showPastEvents": false,
+    "daysAhead": 90
+  },
+  
+  "news": {
+    "maxItemsToDisplay": 7,
+    "itemsPerBatch": 7,
+    "showResults": true,
+    "showAnnouncements": true
+  },
+  
+  "weather": {
+    "location": "Morisset",
+    "bomStationId": "061055",
+    "showForecast": false
+  },
+  
+  "fallback": {
+    "enabled": true,
+    "clubLogoPath": "/assets/logo.png",
+    "genericImages": [
+      "/assets/fallback/rowing1.jpg",
+      "/assets/fallback/rowing2.jpg",
+      "/assets/fallback/rowing3.jpg"
+    ],
+    "message": "Check our website for the latest updates"
+  },
+  
+  "scraper": {
+    "scheduleHourly": true,
+    "maxRetries": 3,
+    "timeoutSeconds": 30
+  },
+  
+  "advanced": {
+    "enableAnimations": true,
+    "transitionDuration": 500,
+    "logLevel": "info",
+    "enableKenBurnsEffect": true
+  }
+}
