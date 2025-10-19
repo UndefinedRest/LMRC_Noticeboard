@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
 
 // ============================================================
 // MAIN NOTICEBOARD COMPONENT
 // ============================================================
 
-export default function Noticeboard() {
+function Noticeboard() {
   const [config, setConfig] = useState(null);
   const [gallery, setGallery] = useState(null);
   const [events, setEvents] = useState(null);
@@ -126,14 +127,12 @@ export default function Noticeboard() {
 
   const fetchWeather = async () => {
     try {
-      const stationId = config?.weather?.bomStationId || '061055';
-      const bomUrl = `http://www.bom.gov.au/fwo/IDN60801/IDN60801.${stationId}.json`;
-      
-      const res = await fetch(bomUrl);
+      // Use our proxy endpoint instead of calling BOM directly
+      const res = await fetch('/api/weather');
       const data = await res.json();
       
-      if (data?.observations?.data?.[0]) {
-        setWeather(data.observations.data[0]);
+      if (data.weather) {
+        setWeather(data.weather);
       }
     } catch (err) {
       console.error('Error fetching weather:', err);
@@ -547,3 +546,17 @@ function Footer({ sponsor, config, colors }) {
     </div>
   );
 }
+
+// ============================================================
+// MOUNT THE APPLICATION
+// ============================================================
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(<Noticeboard />);
+} else {
+  console.error('Root element not found! Make sure index.html has <div id="root"></div>');
+}
+
+export default Noticeboard;

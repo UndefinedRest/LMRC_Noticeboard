@@ -78,10 +78,10 @@
     "showResults": true,
     "showAnnouncements": true
   },
-  
+    
   "weather": {
-    "location": "Morisset",
-    "bomStationId": "061055",
+    "location": "Newcastle",
+    "bomStationId": "94768",
     "showForecast": false
   },
   

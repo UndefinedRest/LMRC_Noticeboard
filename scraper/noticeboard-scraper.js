@@ -1,8 +1,9 @@
 /**
- * LMRC Noticeboard Content Scraper
+ * LMRC Noticeboard Content Scraper - FIXED VERSION
  * Scrapes gallery, events, and news from RevSport platform
- * Extends existing RevSportAuth authentication
  */
+
+console.log('=== SCRAPER FILE LOADING ===');
 
 import puppeteer from 'puppeteer';
 import fs from 'fs/promises';
@@ -11,6 +12,10 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+console.log('=== IMPORTS LOADED ===');
+console.log('Username:', process.env.REVSPORT_USERNAME ? 'Found' : 'MISSING');
+console.log('Password:', process.env.REVSPORT_PASSWORD ? 'Found' : 'MISSING');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,9 +32,6 @@ class NoticeboardScraper {
     this.authenticated = false;
   }
 
-  /**
-   * Initialize browser and authenticate
-   */
   async init() {
     console.log('[NoticeboardScraper] Initializing...');
     
@@ -47,39 +49,26 @@ class NoticeboardScraper {
     await this.page.setViewport({ width: 1920, height: 1080 });
     await this.page.setDefaultTimeout(PAGE_TIMEOUT);
 
-    // Authenticate
     await this.authenticate();
   }
 
-  /**
-   * Authenticate with RevSport (using existing auth pattern)
-   */
   async authenticate() {
     console.log('🔐 Authenticating with RevSport...');
 
     try {
-      // Navigate to login page
       await this.page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2' });
 
-      // Extract CSRF token
-      const csrfToken = await this.page.$eval(
-        'input[name="_token"]',
-        el => el.value
-      );
-
+      const csrfToken = await this.page.$eval('input[name="_token"]', el => el.value);
       console.log('[Auth] CSRF token extracted');
 
-      // Fill login form
       await this.page.type('#username', process.env.REVSPORT_USERNAME);
       await this.page.type('#password', process.env.REVSPORT_PASSWORD);
 
-      // Submit form
       await Promise.all([
         this.page.waitForNavigation({ waitUntil: 'networkidle2' }),
         this.page.click('button[type="submit"]')
       ]);
 
-      // Verify authentication
       const isAuthenticated = await this.page.evaluate(() => {
         return document.body.textContent.includes('Log out') ||
                document.body.textContent.includes('Logout');
@@ -89,7 +78,7 @@ class NoticeboardScraper {
         console.log('✓ Authentication successful');
         this.authenticated = true;
       } else {
-        throw new Error('Authentication failed - no logout button found');
+        throw new Error('Authentication failed');
       }
 
     } catch (err) {
@@ -98,16 +87,11 @@ class NoticeboardScraper {
     }
   }
 
-  /**
-   * Scrape gallery albums and photos
-   */
   async scrapeGallery() {
     console.log('\n[Gallery] Scraping gallery...');
 
     try {
       await this.page.goto(`${BASE_URL}/gallery`, { waitUntil: 'networkidle2' });
-
-      // Wait for gallery to load
       await this.page.waitForSelector('a[href*="/gallery/"]', { timeout: 10000 });
 
       const albums = await this.page.evaluate(() => {
@@ -124,7 +108,6 @@ class NoticeboardScraper {
             return { title, url, albumId };
           })
           .filter(Boolean)
-          // Remove duplicates
           .filter((album, index, self) => 
             index === self.findIndex(a => a.albumId === album.albumId)
           );
@@ -132,7 +115,6 @@ class NoticeboardScraper {
 
       console.log(`[Gallery] Found ${albums.length} albums`);
 
-      // Scrape photos from each album
       const albumsWithPhotos = [];
       
       for (let i = 0; i < Math.min(albums.length, 10); i++) {
@@ -140,29 +122,115 @@ class NoticeboardScraper {
         console.log(`[Gallery] Scraping album ${i + 1}/${Math.min(albums.length, 10)}: ${album.title}`);
 
         try {
+          console.log(`  [DEBUG] Navigating to: ${album.url}`);
           await this.page.goto(album.url, { waitUntil: 'networkidle2', timeout: 20000 });
+          console.log('  [DEBUG] Page loaded');
           
-          // Wait for images to load
-          await this.page.waitForSelector('img', { timeout: 5000 });
+          // Wait for gallery to load
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          console.log('  [DEBUG] Waited 3 seconds');
+          
+          // Scroll to trigger lazy loading
+          await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          await this.page.evaluate(() => window.scrollTo(0, 0));
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          console.log('  [DEBUG] Starting photo extraction...');
 
+          // Extract photos - RevSport uses background-image in spans!
           const photos = await this.page.evaluate(() => {
-            const images = Array.from(document.querySelectorAll('img'));
+            let images = [];
             
-            return images
-              .map(img => ({
-                url: img.src,
-                alt: img.alt || '',
-                thumbnail: img.src
-              }))
-              .filter(photo => 
-                photo.url.includes('gallery') || 
-                photo.url.includes('photo') ||
-                photo.url.includes('image')
-              )
-              .slice(0, 20); // Max 20 photos per album
+            // PRIMARY: Look for .cs-gallery-item links (RevSport pattern)
+            const galleryLinks = document.querySelectorAll('a.cs-gallery-item, a[class*="gallery-item"]');
+            console.log('Found gallery links:', galleryLinks.length);
+            
+            galleryLinks.forEach(link => {
+              const href = link.href;
+              if (href && href.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+                const span = link.querySelector('span[style*="background-image"]');
+                let thumbUrl = href;
+                
+                if (span) {
+                  const style = span.getAttribute('style');
+                  const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
+                  if (match) thumbUrl = match[1];
+                }
+                
+                images.push({
+                  url: href,
+                  thumbnail: thumbUrl,
+                  alt: link.getAttribute('data-sub-html') || '',
+                  source: 'cs-gallery-item'
+                });
+              }
+            });
+            
+            // FALLBACK: Look for .cs-gallery container with background-image spans
+            if (images.length === 0) {
+              const gallery = document.querySelector('.cs-gallery, [class*="cs-gallery"]');
+              if (gallery) {
+                const links = gallery.querySelectorAll('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"]');
+                console.log('Found image links in cs-gallery:', links.length);
+                
+                links.forEach(link => {
+                  const span = link.querySelector('span[style*="background-image"]');
+                  if (span) {
+                    const style = span.getAttribute('style');
+                    const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
+                    if (match) {
+                      images.push({
+                        url: link.href,
+                        thumbnail: match[1],
+                        alt: '',
+                        source: 'cs-gallery-fallback'
+                      });
+                    }
+                  }
+                });
+              }
+            }
+            
+            // LAST RESORT: Any background-image spans
+            if (images.length === 0) {
+              const bgSpans = document.querySelectorAll('span[style*="background-image"]');
+              console.log('Found background-image spans:', bgSpans.length);
+              
+              bgSpans.forEach(span => {
+                const style = span.getAttribute('style');
+                const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
+                if (match) {
+                  const url = match[1];
+                  if (url.includes('cdn.revolutionise') && url.includes('/gallery/')) {
+                    images.push({
+                      url: url,
+                      thumbnail: url,
+                      alt: '',
+                      source: 'background-span'
+                    });
+                  }
+                }
+              });
+            }
+            
+            // Remove duplicates
+            const seen = new Set();
+            const unique = images.filter(img => {
+              if (seen.has(img.url)) return false;
+              seen.add(img.url);
+              return true;
+            });
+            
+            return unique.slice(0, 30);
           });
-
+          
+          console.log(`  [DEBUG] Extraction complete. Found: ${photos.length} photos`);
+          console.log(`  [DEBUG] Strategy used: ${photos[0]?.source || 'none'}`);
+          
           if (photos.length > 0) {
+            console.log(`  [DEBUG] Sample URLs:`, photos.slice(0, 2).map(p => p.url.substring(0, 80)));
+            
             albumsWithPhotos.push({
               ...album,
               photos,
@@ -170,10 +238,13 @@ class NoticeboardScraper {
               scrapedAt: new Date().toISOString()
             });
             console.log(`  ✓ Found ${photos.length} photos`);
+          } else {
+            console.log(`  ⚠ No photos found - check selectors`);
           }
 
         } catch (err) {
           console.error(`  ✗ Error scraping album: ${err.message}`);
+          console.error(`  ✗ Stack:`, err.stack.split('\n').slice(0, 3).join('\n'));
         }
       }
 
@@ -189,16 +260,12 @@ class NoticeboardScraper {
     }
   }
 
-  /**
-   * Scrape upcoming events
-   */
   async scrapeEvents() {
     console.log('\n[Events] Scraping events...');
 
     try {
       await this.page.goto(`${BASE_URL}/events`, { waitUntil: 'networkidle2' });
 
-      // Wait for calendar or event list
       await this.page.waitForSelector('.fc-event, .event-item, [class*="event"]', { 
         timeout: 10000 
       }).catch(() => {
@@ -206,7 +273,6 @@ class NoticeboardScraper {
       });
 
       const events = await this.page.evaluate(() => {
-        // Try multiple selectors for events
         const eventElements = Array.from(document.querySelectorAll(
           '.fc-event, .event-item, [class*="calendar"] [class*="event"]'
         ));
@@ -220,15 +286,10 @@ class NoticeboardScraper {
 
             if (!title || title.length < 3) return null;
 
-            return {
-              title,
-              date: dateStr,
-              url,
-              type: 'event'
-            };
+            return { title, date: dateStr, url, type: 'event' };
           })
           .filter(Boolean)
-          .slice(0, 10); // Next 10 events
+          .slice(0, 10);
       });
 
       console.log(`[Events] Found ${events.length} events`);
@@ -244,16 +305,11 @@ class NoticeboardScraper {
     }
   }
 
-  /**
-   * Scrape news and results
-   */
   async scrapeNews() {
     console.log('\n[News] Scraping news...');
 
     try {
       await this.page.goto(`${BASE_URL}/news`, { waitUntil: 'networkidle2' });
-
-      // Wait for news articles
       await this.page.waitForSelector('a[href*="/news/"]', { timeout: 10000 });
 
       const newsItems = await this.page.evaluate(() => {
@@ -266,12 +322,10 @@ class NoticeboardScraper {
             const url = link.href;
             const articleId = url.split('/news/')[1]?.split('?')[0];
             
-            // Try to find date nearby
             const dateEl = link.closest('[class*="article"], [class*="post"], [class*="item"]')
                               ?.querySelector('[class*="date"], time');
             const date = dateEl?.textContent.trim() || dateEl?.getAttribute('datetime') || '';
 
-            // Try to find snippet
             const snippetEl = link.closest('[class*="article"], [class*="post"], [class*="item"]')
                                  ?.querySelector('p, [class*="excerpt"]');
             const snippet = snippetEl?.textContent.trim().slice(0, 150) || '';
@@ -288,11 +342,10 @@ class NoticeboardScraper {
             };
           })
           .filter(Boolean)
-          // Remove duplicates
           .filter((item, index, self) => 
             index === self.findIndex(n => n.articleId === item.articleId)
           )
-          .slice(0, 20); // Latest 20 items
+          .slice(0, 20);
       });
 
       console.log(`[News] Found ${newsItems.length} news items`);
@@ -308,33 +361,24 @@ class NoticeboardScraper {
     }
   }
 
-  /**
-   * Save data to JSON file with backup
-   */
   async saveData(filename, data) {
     const filepath = path.join(DATA_DIR, filename);
     
-    // Ensure data directory exists
     await fs.mkdir(DATA_DIR, { recursive: true });
 
-    // Backup existing file
     try {
       const existingData = await fs.readFile(filepath, 'utf8');
       const backupPath = `${filepath}.backup`;
       await fs.writeFile(backupPath, existingData);
       console.log(`[Save] Backed up ${filename}`);
     } catch (err) {
-      // No existing file, that's OK
+      // No existing file
     }
 
-    // Write new data
     await fs.writeFile(filepath, JSON.stringify(data, null, 2));
     console.log(`[Save] ✓ Saved ${filename}`);
   }
 
-  /**
-   * Run complete scraping cycle
-   */
   async scrapeAll() {
     console.log('═══════════════════════════════════════════════');
     console.log('  LMRC NOTICEBOARD SCRAPER');
@@ -343,12 +387,10 @@ class NoticeboardScraper {
     try {
       await this.init();
 
-      // Scrape all content
       const galleryData = await this.scrapeGallery();
       const eventsData = await this.scrapeEvents();
       const newsData = await this.scrapeNews();
 
-      // Save all data
       await this.saveData('gallery-data.json', galleryData);
       await this.saveData('events-data.json', eventsData);
       await this.saveData('news-data.json', newsData);
@@ -378,9 +420,6 @@ class NoticeboardScraper {
     }
   }
 
-  /**
-   * Cleanup browser resources
-   */
   async cleanup() {
     if (this.browser) {
       await this.browser.close();
@@ -389,7 +428,6 @@ class NoticeboardScraper {
   }
 }
 
-// Run scraper with retry logic
 async function runWithRetry(retries = MAX_RETRIES) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -414,8 +452,14 @@ async function runWithRetry(retries = MAX_RETRIES) {
   }
 }
 
-// Execute if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Execute if run directly - Windows-compatible check
+const isMainModule = process.argv[1] && (
+  import.meta.url.includes(process.argv[1].replace(/\\/g, '/')) ||
+  import.meta.url.endsWith(path.basename(process.argv[1]))
+);
+
+if (isMainModule) {
+  console.log('=== EXECUTING SCRAPER ===');
   runWithRetry().catch(err => {
     console.error('Fatal error:', err);
     process.exit(1);
