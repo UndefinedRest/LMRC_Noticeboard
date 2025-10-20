@@ -73,15 +73,17 @@
   },
   
   "news": {
-    "maxItemsToDisplay": 7,
-    "itemsPerBatch": 7,
+    "maxItemsToDisplay": 10,
+    "itemRotationSeconds": 45,
+    "showFeaturedOnly": false,
     "showResults": true,
-    "showAnnouncements": true
+    "showAnnouncements": true,
+    "maxContentLength": 500
   },
-    
+  
   "weather": {
-    "location": "Newcastle",
-    "bomStationId": "94768",
+    "location": "Morisset",
+    "bomStationId": "061055",
     "showForecast": false
   },
   

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
+import ReactDOM from 'react-dom';
 
 // ============================================================
 // MAIN NOTICEBOARD COMPONENT
@@ -10,10 +10,11 @@ function Noticeboard() {
   const [gallery, setGallery] = useState(null);
   const [events, setEvents] = useState(null);
   const [news, setNews] = useState(null);
+  const [sponsors, setSponsors] = useState(null);
   const [weather, setWeather] = useState(null);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [newsIndex, setNewsIndex] = useState(0);
-  const [sponsorIndex, setSponsorIndex] = useState(0);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
+  const [sponsorGroupIndex, setSponsorGroupIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Fetch configuration
@@ -52,34 +53,35 @@ function Noticeboard() {
     return () => clearInterval(interval);
   }, [config, gallery, news]);
 
-  // News panel rotation
+  // News article rotation (one article at a time)
   useEffect(() => {
-    if (!config || !news?.news?.length) return;
+    const newsArticles = getFilteredNews();
+    if (!config || !newsArticles.length) return;
     
-    const maxItems = config.news?.itemsPerBatch || 7;
-    const batches = Math.ceil(news.news.length / maxItems);
-    
-    if (batches <= 1) return;
-    
-    const rotationSeconds = config.timing?.newsPanelRotationSeconds || 45;
+    const rotationSeconds = config.news?.itemRotationSeconds || 45;
     const interval = setInterval(() => {
-      setNewsIndex(prev => (prev + 1) % batches);
+      setCurrentNewsIndex(prev => (prev + 1) % newsArticles.length);
     }, rotationSeconds * 1000);
     
     return () => clearInterval(interval);
   }, [config, news]);
 
-  // Sponsor rotation
+  // Sponsor group rotation (show multiple sponsors at once)
   useEffect(() => {
-    if (!config?.sponsors?.length) return;
+    if (!sponsors?.sponsors?.length) return;
     
-    const rotationSeconds = config.timing?.sponsorRotationSeconds || 30;
+    const sponsorsPerGroup = 5; // Show 5 sponsors at a time
+    const totalGroups = Math.ceil(sponsors.sponsors.length / sponsorsPerGroup);
+    
+    if (totalGroups <= 1) return;
+    
+    const rotationSeconds = config?.timing?.sponsorRotationSeconds || 30;
     const interval = setInterval(() => {
-      setSponsorIndex(prev => (prev + 1) % config.sponsors.length);
+      setSponsorGroupIndex(prev => (prev + 1) % totalGroups);
     }, rotationSeconds * 1000);
     
     return () => clearInterval(interval);
-  }, [config]);
+  }, [config, sponsors]);
 
   // Fetch weather
   useEffect(() => {
@@ -107,19 +109,22 @@ function Noticeboard() {
 
   const fetchAllData = async () => {
     try {
-      const [galleryRes, eventsRes, newsRes] = await Promise.all([
+      const [galleryRes, eventsRes, newsRes, sponsorsRes] = await Promise.all([
         fetch('/api/gallery'),
         fetch('/api/events'),
-        fetch('/api/news')
+        fetch('/api/news'),
+        fetch('/api/sponsors')
       ]);
 
       const galleryData = await galleryRes.json();
       const eventsData = await eventsRes.json();
       const newsData = await newsRes.json();
+      const sponsorsData = await sponsorsRes.json();
 
       setGallery(galleryData);
       setEvents(eventsData);
       setNews(newsData);
+      setSponsors(sponsorsData);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -127,12 +132,14 @@ function Noticeboard() {
 
   const fetchWeather = async () => {
     try {
-      // Use our proxy endpoint instead of calling BOM directly
-      const res = await fetch('/api/weather');
+      const stationId = config?.weather?.bomStationId || '061055';
+      const bomUrl = `http://www.bom.gov.au/fwo/IDN60801/IDN60801.${stationId}.json`;
+      
+      const res = await fetch(bomUrl);
       const data = await res.json();
       
-      if (data.weather) {
-        setWeather(data.weather);
+      if (data?.observations?.data?.[0]) {
+        setWeather(data.observations.data[0]);
       }
     } catch (err) {
       console.error('Error fetching weather:', err);
@@ -175,14 +182,34 @@ function Noticeboard() {
     return items;
   };
 
-  const getNewsItems = () => {
+  const getFilteredNews = () => {
     if (!news?.news) return [];
     
-    const maxItems = config?.news?.itemsPerBatch || 7;
-    const start = newsIndex * maxItems;
-    const end = start + maxItems;
+    let filtered = news.news;
     
-    return news.news.slice(start, end);
+    // Filter by featured if enabled
+    if (config?.news?.showFeaturedOnly) {
+      filtered = filtered.filter(item => item.isFeatured);
+    }
+    
+    const maxItems = config?.news?.maxItemsToDisplay || 10;
+    return filtered.slice(0, maxItems);
+  };
+
+  const getCurrentNewsArticle = () => {
+    const articles = getFilteredNews();
+    if (!articles.length) return null;
+    return articles[currentNewsIndex];
+  };
+
+  const getCurrentSponsorGroup = () => {
+    if (!sponsors?.sponsors?.length) return [];
+    
+    const sponsorsPerGroup = 5;
+    const start = sponsorGroupIndex * sponsorsPerGroup;
+    const end = start + sponsorsPerGroup;
+    
+    return sponsors.sponsors.slice(start, end);
   };
 
   const getUpcomingEvents = () => {
@@ -209,9 +236,10 @@ function Noticeboard() {
 
   const heroItems = getHeroItems();
   const currentHero = heroItems[heroIndex];
-  const newsItems = getNewsItems();
+  const currentNewsArticle = getCurrentNewsArticle();
+  const filteredNews = getFilteredNews();
   const upcomingEvents = getUpcomingEvents();
-  const currentSponsor = config.sponsors?.[sponsorIndex];
+  const currentSponsorGroup = getCurrentSponsorGroup();
 
   const colors = config.branding?.clubColors || {
     primary: '#003366',
@@ -235,7 +263,7 @@ function Noticeboard() {
       />
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex" style={{ minHeight: 0 }}>
         {/* LEFT PANEL - UPCOMING EVENTS */}
         <LeftPanel 
           events={upcomingEvents}
@@ -251,14 +279,17 @@ function Noticeboard() {
 
         {/* RIGHT PANEL - NEWS */}
         <RightPanel 
-          newsItems={newsItems}
+          article={currentNewsArticle}
+          articleIndex={currentNewsIndex}
+          totalArticles={filteredNews.length}
           colors={colors}
+          config={config}
         />
       </div>
 
       {/* FOOTER */}
       <Footer 
-        sponsor={currentSponsor}
+        sponsorGroup={currentSponsorGroup}
         config={config}
         colors={colors}
       />
@@ -461,44 +492,90 @@ function CenterHero({ item, colors, config }) {
 }
 
 // ============================================================
-// RIGHT PANEL - NEWS & RESULTS
+// RIGHT PANEL - NEWS ARTICLE (FULL CONTENT)
 // ============================================================
 
-function RightPanel({ newsItems, colors }) {
-  return (
-    <div 
-      className="w-1/4 p-6 overflow-hidden"
-      style={{ backgroundColor: colors.primary, color: 'white' }}
-    >
-      <h2 className="text-3xl font-bold mb-6">Latest News</h2>
-      
-      <div className="space-y-4">
-        {newsItems.length > 0 ? (
-          newsItems.map((item, idx) => (
-            <div 
-              key={idx}
-              className="p-4 rounded-lg"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="text-3xl">
-                  {item.type === 'result' ? '🏆' : '📰'}
-                </div>
-                <div className="flex-1">
-                  <div className="text-lg font-semibold leading-tight">
-                    {item.title}
-                  </div>
-                  {item.date && (
-                    <div className="text-xs opacity-70 mt-2">{item.date}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12 opacity-60">
+function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
+  if (!article) {
+    return (
+      <div 
+        className="w-1/4 p-6 overflow-hidden flex flex-col"
+        style={{ backgroundColor: colors.primary, color: 'white' }}
+      >
+        <h2 className="text-3xl font-bold mb-6">Latest News</h2>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center opacity-60">
             <div className="text-5xl mb-4">📰</div>
             <div className="text-lg">No recent news</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Truncate content if too long
+  const maxLength = config?.news?.maxContentLength || 500;
+  const content = article.content || article.excerpt || '';
+  const displayContent = content.length > maxLength 
+    ? content.substring(0, maxLength) + '...' 
+    : content;
+
+  return (
+    <div 
+      className="w-1/4 p-6 overflow-hidden flex flex-col"
+      style={{ backgroundColor: colors.primary, color: 'white' }}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold">Latest News</h2>
+        {totalArticles > 1 && (
+          <div className="text-sm opacity-70">
+            {articleIndex + 1}/{totalArticles}
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 overflow-hidden">
+        {/* Article Header */}
+        <div className="mb-4">
+          {article.isFeatured && (
+            <div className="inline-block px-3 py-1 rounded text-xs font-bold mb-2"
+                 style={{ backgroundColor: colors.accent, color: colors.primary }}>
+              FEATURED
+            </div>
+          )}
+          
+          {article.date && (
+            <div className="text-sm opacity-80 mb-2 flex items-center gap-2">
+              <span>📅</span>
+              <span>{article.date}</span>
+            </div>
+          )}
+          
+          <h3 className="text-2xl font-bold leading-tight mb-4">
+            {article.title}
+          </h3>
+        </div>
+
+        {/* Article Content */}
+        <div 
+          className="text-base leading-relaxed opacity-90"
+          style={{ 
+            maxHeight: '60vh',
+            overflowY: 'hidden'
+          }}
+        >
+          {displayContent.split('\n\n').map((paragraph, idx) => (
+            <p key={idx} className="mb-3">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        {/* Type Badge */}
+        {article.type === 'result' && (
+          <div className="mt-4 flex items-center gap-2 text-sm opacity-80">
+            <span className="text-2xl">🏆</span>
+            <span>Race Results</span>
           </div>
         )}
       </div>
@@ -507,39 +584,58 @@ function RightPanel({ newsItems, colors }) {
 }
 
 // ============================================================
-// FOOTER - SPONSORS & SOCIAL MEDIA
+// FOOTER - SPONSORS CAROUSEL & SOCIAL MEDIA
 // ============================================================
 
-function Footer({ sponsor, config, colors }) {
+function Footer({ sponsorGroup, config, colors }) {
   return (
     <div 
-      className="h-20 flex items-center justify-between px-8"
+      className="h-32 flex flex-col justify-center px-8"
       style={{ backgroundColor: colors.primary, color: 'white' }}
     >
-      {/* Sponsor */}
-      <div className="flex items-center gap-4">
-        {sponsor ? (
-          <>
-            <div className="text-sm opacity-70">Proudly supported by</div>
-            <div className="text-2xl font-bold">{sponsor.name}</div>
-          </>
-        ) : (
-          <div className="text-sm opacity-70">Thank you to our sponsors</div>
-        )}
-      </div>
+      {/* Sponsors Row */}
+      {sponsorGroup && sponsorGroup.length > 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-8">
+            <div className="text-sm opacity-70 mr-4">
+              Proudly supported by:
+            </div>
+            {sponsorGroup.map((sponsor, idx) => (
+              <div 
+                key={idx}
+                className="flex items-center justify-center"
+                style={{ height: '60px' }}
+              >
+                <img 
+                  src={sponsor.logoUrl}
+                  alt={sponsor.name}
+                  className="max-h-full max-w-full object-contain"
+                  style={{ maxHeight: '60px', maxWidth: '150px' }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-sm opacity-70">
+            Thank you to our club sponsors
+          </div>
+        </div>
+      )}
 
-      {/* Social Media */}
-      <div className="flex items-center gap-6">
+      {/* Social Media Row */}
+      <div className="border-t border-white border-opacity-20 pt-3 flex items-center justify-center gap-8">
         {config.socialMedia?.facebook?.enabled && (
           <div className="flex items-center gap-2">
-            <div className="text-3xl">📘</div>
-            <div className="text-lg">{config.socialMedia.facebook.handle}</div>
+            <div className="text-2xl">📘</div>
+            <div className="text-base">{config.socialMedia.facebook.handle}</div>
           </div>
         )}
         {config.socialMedia?.instagram?.enabled && (
           <div className="flex items-center gap-2">
-            <div className="text-3xl">📸</div>
-            <div className="text-lg">{config.socialMedia.instagram.handle}</div>
+            <div className="text-2xl">📸</div>
+            <div className="text-base">{config.socialMedia.instagram.handle}</div>
           </div>
         )}
       </div>
@@ -553,8 +649,7 @@ function Footer({ sponsor, config, colors }) {
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(<Noticeboard />);
+  ReactDOM.render(<Noticeboard />, rootElement);
 } else {
   console.error('Root element not found! Make sure index.html has <div id="root"></div>');
 }

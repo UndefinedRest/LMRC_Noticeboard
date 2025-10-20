@@ -141,6 +141,33 @@ app.get('/api/news', async (req, res) => {
 });
 
 /**
+ * GET /api/sponsors
+ * Returns sponsor logos and information
+ */
+app.get('/api/sponsors', async (req, res) => {
+  const filepath = path.join(DATA_DIR, 'sponsors-data.json');
+  const data = await readJSONFile(filepath);
+  
+  if (!data) {
+    return res.status(404).json({
+      error: 'Sponsors data not available',
+      sponsors: [],
+      message: 'Waiting for first scrape...'
+    });
+  }
+
+  const ageMinutes = await getFileAge(filepath);
+  
+  res.json({
+    ...data,
+    dataAge: {
+      minutes: Math.round(ageMinutes),
+      stale: ageMinutes > 120
+    }
+  });
+});
+
+/**
  * GET /api/config
  * Returns public configuration (no sensitive data)
  */
@@ -209,57 +236,6 @@ app.get('/api/health', async (req, res) => {
                     newsAge < 240;
 
   res.status(isHealthy ? 200 : 503).json(status);
-});
-
-// ============================================================
-// WEATHER PROXY (to avoid CORS)
-// ============================================================
-
-/**
- * GET /api/weather
- * Proxy for BOM weather API to avoid CORS issues
- */
-app.get('/api/weather', async (req, res) => {
-  try {
-    const config = await readJSONFile(CONFIG_PATH);
-    const stationId = config?.weather?.bomStationId || '061055';
-    const bomUrl = `http://www.bom.gov.au/fwo/IDN60801/IDN60801.${stationId}.json`;
-    
-    const fetch = (await import('node-fetch')).default;
-    const response = await fetch(bomUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      },
-      timeout: 10000
-    });
-    
-    if (!response.ok) {
-      throw new Error(`BOM API returned ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    res.json({
-      weather: data.observations?.data?.[0] || null,
-      location: config?.weather?.location || 'Local',
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (err) {
-    console.error('[API] Weather fetch error:', err.message);
-    
-    // Return mock data so display doesn't break
-    res.json({
-      weather: {
-        air_temp: 22,
-        temp: 22,
-        name: 'Mock Data'
-      },
-      location: 'Morisset',
-      timestamp: new Date().toISOString(),
-      error: 'Using mock weather data - BOM API unavailable'
-    });
-  }
 });
 
 // ============================================================

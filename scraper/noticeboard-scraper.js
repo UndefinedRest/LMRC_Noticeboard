@@ -1,6 +1,6 @@
 /**
- * LMRC Noticeboard Content Scraper - FIXED VERSION
- * Scrapes gallery, events, and news from RevSport platform
+ * LMRC Noticeboard Content Scraper - COMPLETE VERSION
+ * Scrapes gallery, events, news, and sponsors from RevSport platform
  */
 
 console.log('=== SCRAPER FILE LOADING ===');
@@ -122,29 +122,18 @@ class NoticeboardScraper {
         console.log(`[Gallery] Scraping album ${i + 1}/${Math.min(albums.length, 10)}: ${album.title}`);
 
         try {
-          console.log(`  [DEBUG] Navigating to: ${album.url}`);
           await this.page.goto(album.url, { waitUntil: 'networkidle2', timeout: 20000 });
-          console.log('  [DEBUG] Page loaded');
           
-          // Wait for gallery to load
           await new Promise(resolve => setTimeout(resolve, 3000));
-          console.log('  [DEBUG] Waited 3 seconds');
-          
-          // Scroll to trigger lazy loading
           await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
           await new Promise(resolve => setTimeout(resolve, 2000));
           await this.page.evaluate(() => window.scrollTo(0, 0));
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          console.log('  [DEBUG] Starting photo extraction...');
 
-          // Extract photos - RevSport uses background-image in spans!
           const photos = await this.page.evaluate(() => {
             let images = [];
             
-            // PRIMARY: Look for .cs-gallery-item links (RevSport pattern)
             const galleryLinks = document.querySelectorAll('a.cs-gallery-item, a[class*="gallery-item"]');
-            console.log('Found gallery links:', galleryLinks.length);
             
             galleryLinks.forEach(link => {
               const href = link.href;
@@ -167,12 +156,10 @@ class NoticeboardScraper {
               }
             });
             
-            // FALLBACK: Look for .cs-gallery container with background-image spans
             if (images.length === 0) {
               const gallery = document.querySelector('.cs-gallery, [class*="cs-gallery"]');
               if (gallery) {
                 const links = gallery.querySelectorAll('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"]');
-                console.log('Found image links in cs-gallery:', links.length);
                 
                 links.forEach(link => {
                   const span = link.querySelector('span[style*="background-image"]');
@@ -192,29 +179,6 @@ class NoticeboardScraper {
               }
             }
             
-            // LAST RESORT: Any background-image spans
-            if (images.length === 0) {
-              const bgSpans = document.querySelectorAll('span[style*="background-image"]');
-              console.log('Found background-image spans:', bgSpans.length);
-              
-              bgSpans.forEach(span => {
-                const style = span.getAttribute('style');
-                const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
-                if (match) {
-                  const url = match[1];
-                  if (url.includes('cdn.revolutionise') && url.includes('/gallery/')) {
-                    images.push({
-                      url: url,
-                      thumbnail: url,
-                      alt: '',
-                      source: 'background-span'
-                    });
-                  }
-                }
-              });
-            }
-            
-            // Remove duplicates
             const seen = new Set();
             const unique = images.filter(img => {
               if (seen.has(img.url)) return false;
@@ -225,12 +189,7 @@ class NoticeboardScraper {
             return unique.slice(0, 30);
           });
           
-          console.log(`  [DEBUG] Extraction complete. Found: ${photos.length} photos`);
-          console.log(`  [DEBUG] Strategy used: ${photos[0]?.source || 'none'}`);
-          
           if (photos.length > 0) {
-            console.log(`  [DEBUG] Sample URLs:`, photos.slice(0, 2).map(p => p.url.substring(0, 80)));
-            
             albumsWithPhotos.push({
               ...album,
               photos,
@@ -239,12 +198,11 @@ class NoticeboardScraper {
             });
             console.log(`  ✓ Found ${photos.length} photos`);
           } else {
-            console.log(`  ⚠ No photos found - check selectors`);
+            console.log(`  ⚠ No photos found`);
           }
 
         } catch (err) {
-          console.error(`  ✗ Error scraping album: ${err.message}`);
-          console.error(`  ✗ Stack:`, err.stack.split('\n').slice(0, 3).join('\n'));
+          console.error(`  ✗ Error: ${err.message}`);
         }
       }
 
@@ -269,7 +227,7 @@ class NoticeboardScraper {
       await this.page.waitForSelector('.fc-event, .event-item, [class*="event"]', { 
         timeout: 10000 
       }).catch(() => {
-        console.log('[Events] No events found or calendar not loaded');
+        console.log('[Events] No events found');
       });
 
       const events = await this.page.evaluate(() => {
@@ -312,23 +270,27 @@ class NoticeboardScraper {
       await this.page.goto(`${BASE_URL}/news`, { waitUntil: 'networkidle2' });
       await this.page.waitForSelector('a[href*="/news/"]', { timeout: 10000 });
 
-      const newsItems = await this.page.evaluate(() => {
-        const articleLinks = Array.from(document.querySelectorAll('a[href*="/news/"]'));
+      const newsLinks = await this.page.evaluate(() => {
+        const articleCards = Array.from(document.querySelectorAll('[class*="card"], [class*="article"], [class*="post"]'));
         
-        return articleLinks
-          .map(link => {
+        return articleCards
+          .map(card => {
+            const link = card.querySelector('a[href*="/news/"]');
+            if (!link) return null;
+            
             const title = link.textContent.trim() || 
-                         link.querySelector('h1, h2, h3, h4')?.textContent.trim() || '';
+                         card.querySelector('h1, h2, h3, h4, h5')?.textContent.trim() || '';
             const url = link.href;
             const articleId = url.split('/news/')[1]?.split('?')[0];
             
-            const dateEl = link.closest('[class*="article"], [class*="post"], [class*="item"]')
-                              ?.querySelector('[class*="date"], time');
+            const isFeatured = card.textContent.includes('Featured') ||
+                              card.querySelector('[class*="featured"]') !== null;
+            
+            const dateEl = card.querySelector('[class*="date"], time, .text-muted');
             const date = dateEl?.textContent.trim() || dateEl?.getAttribute('datetime') || '';
 
-            const snippetEl = link.closest('[class*="article"], [class*="post"], [class*="item"]')
-                                 ?.querySelector('p, [class*="excerpt"]');
-            const snippet = snippetEl?.textContent.trim().slice(0, 150) || '';
+            const excerptEl = card.querySelector('p, [class*="excerpt"], [class*="description"]');
+            const excerpt = excerptEl?.textContent.trim() || '';
 
             if (!title || !articleId || title.length < 3) return null;
 
@@ -337,27 +299,163 @@ class NoticeboardScraper {
               url,
               articleId,
               date,
-              snippet,
+              excerpt,
+              isFeatured,
               type: title.toLowerCase().includes('result') ? 'result' : 'news'
             };
           })
           .filter(Boolean)
           .filter((item, index, self) => 
             index === self.findIndex(n => n.articleId === item.articleId)
-          )
-          .slice(0, 20);
+          );
       });
 
-      console.log(`[News] Found ${newsItems.length} news items`);
+      console.log(`[News] Found ${newsLinks.length} articles`);
+
+      const newsWithContent = [];
+      
+      for (let i = 0; i < Math.min(newsLinks.length, 20); i++) {
+        const newsItem = newsLinks[i];
+        console.log(`[News] Fetching ${i + 1}/${Math.min(newsLinks.length, 20)}: ${newsItem.title.substring(0, 40)}...`);
+        
+        try {
+          await this.page.goto(newsItem.url, { waitUntil: 'networkidle2', timeout: 15000 });
+          
+          const fullContent = await this.page.evaluate(() => {
+            const contentSelectors = [
+              'article [class*="content"]',
+              'article [class*="body"]',
+              '[class*="article-content"]',
+              'article p',
+              '.content p',
+              'main p'
+            ];
+            
+            let bodyText = '';
+            
+            for (const selector of contentSelectors) {
+              const elements = document.querySelectorAll(selector);
+              if (elements.length > 0) {
+                bodyText = Array.from(elements)
+                  .map(el => el.textContent.trim())
+                  .filter(text => text.length > 20)
+                  .join('\n\n');
+                
+                if (bodyText.length > 100) break;
+              }
+            }
+            
+            return bodyText || 'Content not available';
+          });
+          
+          newsWithContent.push({
+            ...newsItem,
+            content: fullContent,
+            contentLength: fullContent.length
+          });
+          
+          console.log(`  ✓ ${fullContent.length} chars`);
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (err) {
+          console.error(`  ✗ Error: ${err.message}`);
+          newsWithContent.push({
+            ...newsItem,
+            content: newsItem.excerpt || 'Content not available',
+            contentLength: newsItem.excerpt?.length || 0
+          });
+        }
+      }
+
+      console.log(`[News] Scraped ${newsWithContent.length} articles`);
 
       return {
-        news: newsItems,
+        news: newsWithContent,
+        totalArticles: newsLinks.length,
         scrapedAt: new Date().toISOString()
       };
 
     } catch (err) {
       console.error('[News] ERROR:', err.message);
-      return { news: [], error: err.message };
+      return { news: [], totalArticles: 0, error: err.message };
+    }
+  }
+
+  async scrapeSponsors() {
+    console.log('\n[Sponsors] Scraping sponsors...');
+
+    try {
+      await this.page.goto(`${BASE_URL}/home`, { waitUntil: 'networkidle2' });
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const sponsors = await this.page.evaluate(() => {
+        let sponsorLogos = [];
+        
+        const carouselItems = document.querySelectorAll('.tns-item a[href*="/sponsor/"]');
+        
+        carouselItems.forEach(link => {
+          const img = link.querySelector('img');
+          if (img) {
+            const src = img.src || img.getAttribute('data-src');
+            const alt = img.alt || link.getAttribute('title') || '';
+            
+            if (src && src.includes('cdn.revolutionise.com/sponsors')) {
+              sponsorLogos.push({
+                name: alt || 'Sponsor',
+                logoUrl: src,
+                url: link.href,
+                source: 'tns-carousel'
+              });
+            }
+          }
+        });
+        
+        if (sponsorLogos.length === 0) {
+          const sponsorLinks = document.querySelectorAll('a[href*="/sponsor/"]');
+          
+          sponsorLinks.forEach(link => {
+            const img = link.querySelector('img');
+            if (img) {
+              const src = img.src || img.getAttribute('data-src');
+              const alt = img.alt || link.getAttribute('title') || '';
+              
+              if (src) {
+                sponsorLogos.push({
+                  name: alt || 'Sponsor',
+                  logoUrl: src,
+                  url: link.href,
+                  source: 'sponsor-link'
+                });
+              }
+            }
+          });
+        }
+        
+        const seen = new Set();
+        return sponsorLogos.filter(s => {
+          if (seen.has(s.logoUrl)) return false;
+          seen.add(s.logoUrl);
+          return true;
+        });
+      });
+
+      console.log(`[Sponsors] Found ${sponsors.length} sponsors`);
+      if (sponsors.length > 0) {
+        console.log(`[Sponsors] Sample:`, sponsors.slice(0, 3).map(s => s.name));
+      }
+
+      return {
+        sponsors,
+        scrapedAt: new Date().toISOString()
+      };
+
+    } catch (err) {
+      console.error('[Sponsors] ERROR:', err.message);
+      return { sponsors: [], error: err.message };
     }
   }
 
@@ -370,7 +468,6 @@ class NoticeboardScraper {
       const existingData = await fs.readFile(filepath, 'utf8');
       const backupPath = `${filepath}.backup`;
       await fs.writeFile(backupPath, existingData);
-      console.log(`[Save] Backed up ${filename}`);
     } catch (err) {
       // No existing file
     }
@@ -390,10 +487,12 @@ class NoticeboardScraper {
       const galleryData = await this.scrapeGallery();
       const eventsData = await this.scrapeEvents();
       const newsData = await this.scrapeNews();
+      const sponsorsData = await this.scrapeSponsors();
 
       await this.saveData('gallery-data.json', galleryData);
       await this.saveData('events-data.json', eventsData);
       await this.saveData('news-data.json', newsData);
+      await this.saveData('sponsors-data.json', sponsorsData);
 
       console.log('\n═══════════════════════════════════════════════');
       console.log('  SCRAPING SUMMARY');
@@ -402,6 +501,7 @@ class NoticeboardScraper {
       console.log(`Total photos: ${galleryData.albums?.reduce((sum, a) => sum + a.photoCount, 0) || 0}`);
       console.log(`Events: ${eventsData.events?.length || 0}`);
       console.log(`News items: ${newsData.news?.length || 0}`);
+      console.log(`Sponsors: ${sponsorsData.sponsors?.length || 0}`);
       console.log(`Completed: ${new Date().toLocaleString()}`);
       console.log('═══════════════════════════════════════════════\n');
 
@@ -409,7 +509,8 @@ class NoticeboardScraper {
         success: true,
         gallery: galleryData,
         events: eventsData,
-        news: newsData
+        news: newsData,
+        sponsors: sponsorsData
       };
 
     } catch (err) {
@@ -452,7 +553,6 @@ async function runWithRetry(retries = MAX_RETRIES) {
   }
 }
 
-// Execute if run directly - Windows-compatible check
 const isMainModule = process.argv[1] && (
   import.meta.url.includes(process.argv[1].replace(/\\/g, '/')) ||
   import.meta.url.endsWith(path.basename(process.argv[1]))
