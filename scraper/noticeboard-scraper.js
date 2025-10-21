@@ -219,47 +219,85 @@ class NoticeboardScraper {
   }
 
   async scrapeEvents() {
-    console.log('\n[Events] Scraping events...');
+    console.log('\n[Events] Scraping events from WordPress site...');
 
     try {
-      await this.page.goto(`${BASE_URL}/events`, { waitUntil: 'networkidle2' });
+      // Navigate to the WordPress events page (no authentication required)
+      await this.page.goto(`${BASE_URL}/events/list`, { waitUntil: 'networkidle2' });
 
-      await this.page.waitForSelector('.fc-event, .event-item, [class*="event"]', { 
-        timeout: 10000 
-      }).catch(() => {
-        console.log('[Events] No events found');
-      });
+      // Wait for event cards to load
+      await this.page.waitForSelector('.card.card-hover', { timeout: 10000 });
+
+      // Wait a bit for any dynamic content
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const events = await this.page.evaluate(() => {
-        const eventElements = Array.from(document.querySelectorAll(
-          '.fc-event, .event-item, [class*="calendar"] [class*="event"]'
-        ));
+        const eventCards = document.querySelectorAll('.card.card-hover');
+        const results = [];
 
-        return eventElements
-          .map(el => {
-            const title = el.textContent?.trim() || el.getAttribute('title') || '';
-            const dateStr = el.getAttribute('data-date') || 
-                           el.querySelector('[class*="date"]')?.textContent || '';
-            const url = el.href || el.querySelector('a')?.href || '';
+        eventCards.forEach((card) => {
+          // Get the title link
+          const titleLink = card.querySelector('a[href*="/events/"]');
+          if (!titleLink) return;
 
-            if (!title || title.length < 3) return null;
+          const title = titleLink.textContent.trim();
+          const url = titleLink.href;
 
-            return { title, date: dateStr, url, type: 'event' };
-          })
-          .filter(Boolean)
-          .slice(0, 10);
+          // Get all the text content of the card
+          const cardText = card.textContent;
+
+          // Extract date/time - format like "Sat 26 Oct 2025 08:00 — 17:00"
+          const dateMatch = cardText.match(/([A-Z][a-z]{2}\s+\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4}\s+\d{1,2}:\d{2}(?:\s*—\s*(?:[A-Z][a-z]{2}\s+)?\d{1,2}(?:\s+[A-Z][a-z]{2,8}\s+\d{4})?\s+\d{1,2}:\d{2})?)/);
+          const dateText = dateMatch ? dateMatch[1] : '';
+
+          // Extract location - usually appears after the date
+          const lines = cardText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+          let location = '';
+
+          // Find the line after the title and date
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // Skip title and date lines
+            if (line === title || line.includes(dateText) || line === 'Details') continue;
+            // This should be the location
+            if (line.length > 0 && line.length < 100) {
+              location = line;
+              break;
+            }
+          }
+
+          // Only add valid events (skip navigation items)
+          if (title && title.length > 5 &&
+              !title.includes('Download') &&
+              !title.includes('Past') &&
+              !title.includes('Calendar') &&
+              url.match(/\/events\/\d+/)) {
+
+            results.push({
+              title,
+              date: dateText,
+              location,
+              url,
+              eventId: url.split('/events/')[1],
+              type: 'event'
+            });
+          }
+        });
+
+        return results;
       });
 
       console.log(`[Events] Found ${events.length} events`);
 
       return {
         events,
+        totalEvents: events.length,
         scrapedAt: new Date().toISOString()
       };
 
     } catch (err) {
       console.error('[Events] ERROR:', err.message);
-      return { events: [], error: err.message };
+      return { events: [], totalEvents: 0, error: err.message, scrapedAt: new Date().toISOString() };
     }
   }
 
@@ -387,22 +425,36 @@ class NoticeboardScraper {
 
     try {
       await this.page.goto(`${BASE_URL}/home`, { waitUntil: 'networkidle2' });
-      
+
+      // Wait for sponsor images to load (try multiple selectors)
       await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Scroll to bottom to trigger lazy loading
       await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Try to wait for sponsor images to appear
+      try {
+        await this.page.waitForSelector('img[src*="cdn.revolutionise.com/sponsors"]', { timeout: 10000 });
+        console.log('[Sponsors] Sponsor images found in DOM');
+      } catch (err) {
+        console.log('[Sponsors] Warning: Sponsor selector not found, continuing anyway...');
+      }
+
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const sponsors = await this.page.evaluate(() => {
         let sponsorLogos = [];
-        
+
+        // Strategy 1: Look for sponsors in carousel items
         const carouselItems = document.querySelectorAll('.tns-item a[href*="/sponsor/"]');
-        
+
         carouselItems.forEach(link => {
           const img = link.querySelector('img');
           if (img) {
             const src = img.src || img.getAttribute('data-src');
             const alt = img.alt || link.getAttribute('title') || '';
-            
+
             if (src && src.includes('cdn.revolutionise.com/sponsors')) {
               sponsorLogos.push({
                 name: alt || 'Sponsor',
@@ -413,28 +465,81 @@ class NoticeboardScraper {
             }
           }
         });
-        
-        if (sponsorLogos.length === 0) {
-          const sponsorLinks = document.querySelectorAll('a[href*="/sponsor/"]');
-          
-          sponsorLinks.forEach(link => {
-            const img = link.querySelector('img');
-            if (img) {
-              const src = img.src || img.getAttribute('data-src');
-              const alt = img.alt || link.getAttribute('title') || '';
-              
-              if (src) {
-                sponsorLogos.push({
-                  name: alt || 'Sponsor',
-                  logoUrl: src,
-                  url: link.href,
-                  source: 'sponsor-link'
-                });
-              }
+
+        // Strategy 2: Look for sponsor links (with <a> tags)
+        const sponsorLinks = document.querySelectorAll('a[href*="/sponsor/"]');
+
+        sponsorLinks.forEach(link => {
+          const img = link.querySelector('img');
+          if (img) {
+            // Try multiple ways to get the image URL
+            const src = img.src ||
+                       img.getAttribute('data-src') ||
+                       img.getAttribute('data-lazy-src') ||
+                       img.getAttribute('srcset')?.split(' ')[0];
+            const alt = img.alt || link.getAttribute('title') || '';
+
+            // Accept any sponsor image, not just ones from CDN
+            if (src && src.length > 0) {
+              sponsorLogos.push({
+                name: alt || 'Sponsor',
+                logoUrl: src,
+                url: link.href,
+                source: 'sponsor-link'
+              });
             }
-          });
+          }
+        });
+
+        // Strategy 3: Look for standalone sponsor images (without links)
+        // Try multiple selector patterns for sponsor images
+        const sponsorImageSelectors = [
+          'img[src*="cdn.revolutionise.com/sponsors"]',
+          'img[data-src*="cdn.revolutionise.com/sponsors"]',
+          'img[alt*="Sponsor"]',
+          'div[class*="sponsor"] img',
+          'div[class*="carousel"] img[src*="revolutionise"]'
+        ];
+
+        let sponsorImages = [];
+        for (const selector of sponsorImageSelectors) {
+          const imgs = document.querySelectorAll(selector);
+          sponsorImages.push(...Array.from(imgs));
         }
-        
+
+        // Remove duplicates
+        sponsorImages = [...new Set(sponsorImages)];
+
+        sponsorImages.forEach(img => {
+          // Check if this image is already captured by a link
+          const parentLink = img.closest('a[href*="/sponsor/"]');
+          if (parentLink) return; // Skip if already captured
+
+          const src = img.src ||
+                     img.getAttribute('data-src') ||
+                     img.getAttribute('data-lazy-src') ||
+                     img.getAttribute('srcset')?.split(' ')[0];
+          const alt = img.alt || '';
+
+          // Only add if it's specifically a sponsor image (not gallery images)
+          // Use multiple checks to ensure we catch the sponsor image
+          const isSponsorImage = src && (
+            src.includes('/sponsors/') ||
+            src.includes('revolutionise.com/sponsors') ||
+            src.toLowerCase().includes('cdn.revolutionise.com.au/sponsors')
+          );
+
+          if (isSponsorImage) {
+            sponsorLogos.push({
+              name: alt || 'Sponsor',
+              logoUrl: src,
+              url: '', // No link available for standalone images
+              source: 'standalone-image'
+            });
+          }
+        });
+
+        // Remove duplicates based on logoUrl
         const seen = new Set();
         return sponsorLogos.filter(s => {
           if (seen.has(s.logoUrl)) return false;
@@ -443,13 +548,16 @@ class NoticeboardScraper {
         });
       });
 
-      console.log(`[Sponsors] Found ${sponsors.length} sponsors`);
-      if (sponsors.length > 0) {
-        console.log(`[Sponsors] Sample:`, sponsors.slice(0, 3).map(s => s.name));
+      console.log(`[Sponsors] Found ${sponsors.length} unique sponsors`);
+
+      const finalSponsors = sponsors;
+
+      if (finalSponsors.length > 0) {
+        console.log(`[Sponsors] Sample:`, finalSponsors.slice(0, 3).map(s => s.name));
       }
 
       return {
-        sponsors,
+        sponsors: finalSponsors,
         scrapedAt: new Date().toISOString()
       };
 
@@ -499,7 +607,7 @@ class NoticeboardScraper {
       console.log('═══════════════════════════════════════════════');
       console.log(`Gallery albums: ${galleryData.albums?.length || 0}`);
       console.log(`Total photos: ${galleryData.albums?.reduce((sum, a) => sum + a.photoCount, 0) || 0}`);
-      console.log(`Events: ${eventsData.events?.length || 0}`);
+      console.log(`Events: ${eventsData.events?.length || 0} (from WordPress)`);
       console.log(`News items: ${newsData.news?.length || 0}`);
       console.log(`Sponsors: ${sponsorsData.sponsors?.length || 0}`);
       console.log(`Completed: ${new Date().toLocaleString()}`);
