@@ -9,6 +9,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,12 +171,83 @@ app.get('/api/sponsors', async (req, res) => {
 });
 
 /**
+ * GET /api/weather
+ * Fetches current weather from OpenWeatherMap API
+ */
+app.get('/api/weather', async (req, res) => {
+  const apiKey = process.env.OPENWEATHERMAP_API_KEY;
+
+  if (!apiKey) {
+    return res.status(503).json({
+      error: 'Weather API not configured',
+      message: 'OpenWeatherMap API key not found in environment variables. Add OPENWEATHERMAP_API_KEY to .env file.'
+    });
+  }
+
+  const config = await readJSONFile(CONFIG_PATH);
+  if (!config || !config.weather) {
+    return res.status(500).json({
+      error: 'Weather configuration missing',
+      message: 'Weather settings not found in config.json'
+    });
+  }
+
+  const { latitude, longitude, location, units = 'metric' } = config.weather;
+
+  if (!latitude || !longitude) {
+    return res.status(500).json({
+      error: 'Weather location not configured',
+      message: 'latitude and longitude must be set in config.json weather section'
+    });
+  }
+
+  try {
+    // Fetch current weather from OpenWeatherMap
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=${units}&appid=${apiKey}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error(`[Weather] OpenWeatherMap API error: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({
+        error: 'Weather API request failed',
+        message: `OpenWeatherMap returned ${response.status}`
+      });
+    }
+
+    const data = await response.json();
+
+    // Transform OpenWeatherMap response to our format
+    const weatherData = {
+      location: location || data.name,
+      temperature: Math.round(data.main.temp),
+      feelsLike: Math.round(data.main.feels_like),
+      humidity: data.main.humidity,
+      windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+      windDirection: data.wind.deg,
+      description: data.weather[0].description,
+      icon: data.weather[0].icon,
+      timestamp: new Date().toISOString(),
+      source: 'OpenWeatherMap'
+    };
+
+    res.json(weatherData);
+  } catch (err) {
+    console.error('[Weather] Error fetching weather:', err.message);
+    res.status(500).json({
+      error: 'Failed to fetch weather data',
+      message: err.message
+    });
+  }
+});
+
+/**
  * GET /api/config
  * Returns public configuration (no sensitive data)
  */
 app.get('/api/config', async (req, res) => {
   const config = await readJSONFile(CONFIG_PATH);
-  
+
   if (!config) {
     return res.status(404).json({
       error: 'Configuration not available',

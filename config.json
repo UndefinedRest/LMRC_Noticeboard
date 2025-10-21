@@ -22,42 +22,30 @@
   
   "branding": {
     "clubName": "Lake Macquarie Rowing Club",
-    "clubLogoPath": "/assets/logo.png",
+    "clubLogoPath": "https://cdn.revolutionise.com.au/logos/hpg7hjrir3jsrjwa.png",
     "clubColors": {
-      "primary": "#003366",
-      "secondary": "#0066CC",
+      "primary": "#2778bf",
+      "secondary": "#1a5a8f",
       "accent": "#FFD700",
       "background": "#F5F5F5",
-      "text": "#333333"
+      "text": "#333333",
+      "white": "#FFFFFF"
     },
-    "tagline": "Rowing Excellence Since 1963"
+    "tagline": ""
   },
   
   "socialMedia": {
     "facebook": {
       "enabled": true,
-      "handle": "@LakeMacquarieRC",
-      "url": "https://facebook.com/lakemacquarierc"
+      "handle": "Lake Macquarie Rowing Club",
+      "url": "https://www.facebook.com/pages/Lake-Macquarie-Rowing-Club/276854532351490"
     },
     "instagram": {
       "enabled": true,
-      "handle": "@lmrc_rowing",
-      "url": "https://instagram.com/lmrc_rowing"
+      "handle": "@lakemacquarierowingclub",
+      "url": "https://www.instagram.com/lakemacquarierowingclub"
     }
   },
-  
-  "sponsors": [
-    {
-      "name": "Sponsor 1",
-      "logoPath": "/assets/sponsors/sponsor1.png",
-      "url": "https://example.com"
-    },
-    {
-      "name": "Sponsor 2",
-      "logoPath": "/assets/sponsors/sponsor2.png",
-      "url": "https://example.com"
-    }
-  ],
   
   "gallery": {
     "maxAlbumsToDisplay": 10,
@@ -82,9 +70,11 @@
   },
   
   "weather": {
-    "location": "Morisset",
-    "bomStationId": "061055",
-    "showForecast": false
+    "location": "Rathmines",
+    "latitude": -33.0333,
+    "longitude": 151.60,
+    "showForecast": false,
+    "units": "metric"
   },
   
   "fallback": {

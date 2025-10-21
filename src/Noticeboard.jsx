@@ -85,8 +85,8 @@ function Noticeboard() {
 
   // Fetch weather
   useEffect(() => {
-    if (!config?.weather?.bomStationId) return;
-    
+    if (!config?.weather) return;
+
     fetchWeather();
     const refreshMinutes = config.timing?.weatherRefreshMinutes || 30;
     const interval = setInterval(fetchWeather, refreshMinutes * 60 * 1000);
@@ -132,17 +132,22 @@ function Noticeboard() {
 
   const fetchWeather = async () => {
     try {
-      const stationId = config?.weather?.bomStationId || '061055';
-      const bomUrl = `http://www.bom.gov.au/fwo/IDN60801/IDN60801.${stationId}.json`;
-      
-      const res = await fetch(bomUrl);
-      const data = await res.json();
-      
-      if (data?.observations?.data?.[0]) {
-        setWeather(data.observations.data[0]);
+      const res = await fetch('/api/weather');
+
+      if (!res.ok) {
+        // 503 = Service Unavailable (BOM API blocked)
+        // Don't log repeated errors for known issues
+        if (res.status !== 503) {
+          console.warn('Weather API returned error:', res.status);
+        }
+        return;
       }
+
+      const data = await res.json();
+      setWeather(data);
     } catch (err) {
-      console.error('Error fetching weather:', err);
+      // Silently fail - weather is optional feature
+      console.debug('Weather unavailable:', err.message);
     }
   };
 
@@ -298,6 +303,73 @@ function Noticeboard() {
 }
 
 // ============================================================
+// WEATHER ICON HELPER
+// ============================================================
+
+function getWeatherIcon(iconCode, temperature) {
+  // OpenWeatherMap icon codes: https://openweathermap.org/weather-conditions
+  if (!iconCode) {
+    // Fallback based on temperature
+    return temperature > 25 ? '☀️' : temperature > 15 ? '⛅' : '☁️';
+  }
+
+  const iconMap = {
+    '01d': '☀️', // clear sky day
+    '01n': '🌙', // clear sky night
+    '02d': '🌤️', // few clouds day
+    '02n': '☁️', // few clouds night
+    '03d': '☁️', // scattered clouds
+    '03n': '☁️',
+    '04d': '☁️', // broken clouds
+    '04n': '☁️',
+    '09d': '🌧️', // shower rain
+    '09n': '🌧️',
+    '10d': '🌦️', // rain day
+    '10n': '🌧️', // rain night
+    '11d': '⛈️', // thunderstorm
+    '11n': '⛈️',
+    '13d': '🌨️', // snow
+    '13n': '🌨️',
+    '50d': '🌫️', // mist
+    '50n': '🌫️'
+  };
+
+  return iconMap[iconCode] || '⛅';
+}
+
+// ============================================================
+// WIND DIRECTION HELPER
+// ============================================================
+
+function getWindDirection(degrees) {
+  if (degrees == null) return '';
+
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const index = Math.round(degrees / 22.5) % 16;
+  return directions[index];
+}
+
+function getWindArrow(degrees) {
+  if (degrees == null) return '';
+
+  // Wind direction indicates WHERE the wind is coming FROM
+  // Rotate arrow to point in the direction the wind is blowing TO (opposite direction)
+  const rotation = (degrees + 180) % 360;
+
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        transform: `rotate(${rotation}deg)`,
+        fontSize: '1.2em'
+      }}
+    >
+      ↑
+    </span>
+  );
+}
+
+// ============================================================
 // HEADER COMPONENT
 // ============================================================
 
@@ -319,13 +391,21 @@ function Header({ config, currentTime, weather, colors }) {
   };
 
   return (
-    <div 
+    <div
       className="h-24 flex items-center justify-between px-8"
       style={{ backgroundColor: colors.primary, color: 'white' }}
     >
       {/* Logo */}
       <div className="flex items-center gap-4">
-        <div className="text-6xl">🚣</div>
+        {config.branding?.clubLogoPath ? (
+          <img
+            src={config.branding.clubLogoPath}
+            alt={config.branding.clubName || 'Club Logo'}
+            className="h-20 object-contain"
+          />
+        ) : (
+          <div className="text-6xl">🚣</div>
+        )}
         <div>
           <div className="text-3xl font-bold">{config.branding?.clubName || 'LMRC'}</div>
           <div className="text-sm opacity-80">{config.branding?.tagline || ''}</div>
@@ -340,14 +420,20 @@ function Header({ config, currentTime, weather, colors }) {
 
       {/* Weather */}
       <div className="flex items-center gap-4">
-        {weather ? (
+        {weather && weather.temperature != null ? (
           <>
             <div className="text-5xl">
-              {weather.temp > 25 ? '☀️' : weather.temp > 15 ? '⛅' : '☁️'}
+              {getWeatherIcon(weather.icon, weather.temperature)}
             </div>
             <div>
-              <div className="text-3xl font-bold">{weather.air_temp}°C</div>
-              <div className="text-sm opacity-80">{config.weather?.location || 'Local'}</div>
+              <div className="text-3xl font-bold">{weather.temperature}°C</div>
+              <div className="text-sm opacity-80">{weather.location || 'Local'}</div>
+              {weather.windSpeed != null && (
+                <div className="text-sm opacity-80 flex items-center gap-1 mt-1">
+                  {getWindArrow(weather.windDirection)}
+                  <span>{weather.windSpeed} km/h {getWindDirection(weather.windDirection)}</span>
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -408,12 +494,21 @@ function LeftPanel({ events, colors }) {
 function CenterHero({ item, colors, config }) {
   if (!item) {
     return (
-      <div 
+      <div
         className="flex-1 flex items-center justify-center"
         style={{ backgroundColor: colors.background }}
       >
         <div className="text-center">
-          <div className="text-9xl mb-6">🚣</div>
+          {config.branding?.clubLogoPath ? (
+            <img
+              src={config.branding.clubLogoPath}
+              alt="Club Logo"
+              className="mx-auto mb-6"
+              style={{ maxHeight: '200px', objectFit: 'contain' }}
+            />
+          ) : (
+            <div className="text-9xl mb-6">🚣</div>
+          )}
           <div className="text-4xl font-bold mb-4" style={{ color: colors.primary }}>
             Lake Macquarie Rowing Club
           </div>
@@ -589,24 +684,24 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
 
 function Footer({ sponsorGroup, config, colors }) {
   return (
-    <div 
-      className="h-32 flex flex-col justify-center px-8"
-      style={{ backgroundColor: colors.primary, color: 'white' }}
-    >
-      {/* Sponsors Row */}
-      {sponsorGroup && sponsorGroup.length > 0 ? (
-        <div className="flex-1 flex items-center justify-center">
+    <div className="h-32 flex flex-col">
+      {/* Sponsors Row - White Background */}
+      <div
+        className="flex-1 flex items-center justify-center px-8"
+        style={{ backgroundColor: colors.white || '#FFFFFF', color: colors.text }}
+      >
+        {sponsorGroup && sponsorGroup.length > 0 ? (
           <div className="flex items-center gap-8">
-            <div className="text-sm opacity-70 mr-4">
+            <div className="text-sm mr-4" style={{ color: colors.text, opacity: 0.7 }}>
               Proudly supported by:
             </div>
             {sponsorGroup.map((sponsor, idx) => (
-              <div 
+              <div
                 key={idx}
                 className="flex items-center justify-center"
                 style={{ height: '60px' }}
               >
-                <img 
+                <img
                   src={sponsor.logoUrl}
                   alt={sponsor.name}
                   className="max-h-full max-w-full object-contain"
@@ -615,28 +710,45 @@ function Footer({ sponsorGroup, config, colors }) {
               </div>
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-sm opacity-70">
+        ) : (
+          <div className="text-sm" style={{ color: colors.text, opacity: 0.7 }}>
             Thank you to our club sponsors
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Social Media Row */}
-      <div className="border-t border-white border-opacity-20 pt-3 flex items-center justify-center gap-8">
+      {/* Social Media Row - Blue Background */}
+      <div
+        className="py-3 flex items-center justify-center gap-6 px-8"
+        style={{ backgroundColor: colors.primary, color: 'white' }}
+      >
         {config.socialMedia?.facebook?.enabled && (
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">📘</div>
-            <div className="text-base">{config.socialMedia.facebook.handle}</div>
-          </div>
+          <a
+            href={config.socialMedia.facebook.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 transition-opacity hover:opacity-70"
+            style={{ color: 'white', textDecoration: 'none' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            <span className="text-sm font-medium">{config.socialMedia.facebook.handle}</span>
+          </a>
         )}
         {config.socialMedia?.instagram?.enabled && (
-          <div className="flex items-center gap-2">
-            <div className="text-2xl">📸</div>
-            <div className="text-base">{config.socialMedia.instagram.handle}</div>
-          </div>
+          <a
+            href={config.socialMedia.instagram.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 transition-opacity hover:opacity-70"
+            style={{ color: 'white', textDecoration: 'none' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            <span className="text-sm font-medium">{config.socialMedia.instagram.handle}</span>
+          </a>
         )}
       </div>
     </div>
