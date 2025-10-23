@@ -1,25 +1,19 @@
 {
   "display": {
     "name": "LMRC Noticeboard",
-    "resolution": {
-      "width": 1920,
-      "height": 1080
-    },
     "layout": {
       "leftPanelWidth": 25,
       "centerPanelWidth": 50,
       "rightPanelWidth": 25
     }
   },
-  
   "timing": {
     "heroRotationSeconds": 15,
     "newsPanelRotationSeconds": 45,
     "sponsorRotationSeconds": 30,
     "dataRefreshSeconds": 60,
-    "weatherRefreshMinutes": 30
+    "weatherRefreshMinutes": 10
   },
-  
   "branding": {
     "clubName": "Lake Macquarie Rowing Club",
     "clubLogoPath": "https://cdn.revolutionise.com.au/logos/hpg7hjrir3jsrjwa.png",
@@ -33,7 +27,6 @@
     },
     "tagline": ""
   },
-  
   "socialMedia": {
     "facebook": {
       "enabled": true,
@@ -46,20 +39,17 @@
       "url": "https://www.instagram.com/lakemacquarierowingclub"
     }
   },
-  
   "gallery": {
     "maxAlbumsToDisplay": 10,
     "publicOnly": true,
     "maxPhotosPerAlbum": 20,
     "prioritizeRecent": true
   },
-  
   "events": {
     "maxEventsToDisplay": 7,
     "showPastEvents": false,
     "daysAhead": 90
   },
-  
   "news": {
     "maxItemsToDisplay": 10,
     "itemRotationSeconds": 45,
@@ -68,15 +58,13 @@
     "showAnnouncements": true,
     "maxContentLength": 500
   },
-  
   "weather": {
     "location": "Rathmines",
     "latitude": -33.0333,
-    "longitude": 151.60,
+    "longitude": 151.6,
     "showForecast": false,
     "units": "metric"
   },
-  
   "fallback": {
     "enabled": true,
     "clubLogoPath": "/assets/logo.png",
@@ -87,13 +75,11 @@
     ],
     "message": "Check our website for the latest updates"
   },
-  
   "scraper": {
     "scheduleHourly": true,
     "maxRetries": 3,
     "timeoutSeconds": 30
   },
-  
   "advanced": {
     "enableAnimations": true,
     "transitionDuration": 500,
