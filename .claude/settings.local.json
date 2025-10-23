@@ -10,7 +10,9 @@
       "Bash(npm start)",
       "Bash(taskkill //F //IM node.exe)",
       "Bash(npm run dev:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -217,16 +217,11 @@ function ConfigEditor() {
 
   const navigationItems = [
     { id: 'overview', icon: '📊', label: 'Overview' },
-    { id: 'branding', icon: '🎨', label: 'Branding & Display' },
+    { id: 'branding', icon: '🎨', label: 'Branding' },
     { id: 'timing', icon: '⏱️', label: 'Timing & Rotation' },
-    { id: 'gallery', icon: '📸', label: 'Gallery' },
-    { id: 'events', icon: '📅', label: 'Events' },
     { id: 'news', icon: '📰', label: 'News' },
     { id: 'weather', icon: '🌤️', label: 'Weather' },
-    { id: 'social', icon: '📱', label: 'Social Media' },
-    { id: 'fallback', icon: '🔄', label: 'Fallback Settings' },
-    { id: 'scraper', icon: '🕷️', label: 'Scraper' },
-    { id: 'advanced', icon: '⚙️', label: 'Advanced' }
+    { id: 'social', icon: '📱', label: 'Social Media' }
   ];
 
   return (
@@ -397,50 +392,6 @@ function ConfigEditor() {
                     />
                   </div>
                 </SubSection>
-
-                <SubSection title="Display Settings">
-                  <Field label="Display Name" help="Name shown in browser tab">
-                    <input
-                      type="text"
-                      value={config.display?.name || ''}
-                      onChange={(e) => updateConfig('display', 'name', e.target.value)}
-                      style={styles.input}
-                    />
-                  </Field>
-
-                  <FieldGroup title="Panel Layout (%)">
-                    <Field label="Left Panel" inline>
-                      <input
-                        type="number"
-                        value={config.display?.layout?.leftPanelWidth || 25}
-                        onChange={(e) => updateNestedConfig('display', 'layout', 'leftPanelWidth', parseInt(e.target.value))}
-                        style={styles.inputSmall}
-                        min="15"
-                        max="40"
-                      />
-                    </Field>
-                    <Field label="Center Panel" inline>
-                      <input
-                        type="number"
-                        value={config.display?.layout?.centerPanelWidth || 50}
-                        onChange={(e) => updateNestedConfig('display', 'layout', 'centerPanelWidth', parseInt(e.target.value))}
-                        style={styles.inputSmall}
-                        min="30"
-                        max="70"
-                      />
-                    </Field>
-                    <Field label="Right Panel" inline>
-                      <input
-                        type="number"
-                        value={config.display?.layout?.rightPanelWidth || 25}
-                        onChange={(e) => updateNestedConfig('display', 'layout', 'rightPanelWidth', parseInt(e.target.value))}
-                        style={styles.inputSmall}
-                        min="15"
-                        max="40"
-                      />
-                    </Field>
-                  </FieldGroup>
-                </SubSection>
               </Section>
             </div>
 
@@ -563,95 +514,9 @@ function ConfigEditor() {
               </Section>
             </div>
 
-            {/* Gallery */}
-            <div data-section="gallery">
-              <Section title="Gallery Settings" icon="📸">
-                <Field label="Max Albums to Display" help="Maximum number of photo albums to show in rotation">
-                  <input
-                    type="number"
-                    value={config.gallery?.maxAlbumsToDisplay || 10}
-                    onChange={(e) => updateConfig('gallery', 'maxAlbumsToDisplay', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="1"
-                    max="50"
-                  />
-                </Field>
-
-                <Field label="Max Photos per Album" help="Maximum photos to include from each album">
-                  <input
-                    type="number"
-                    value={config.gallery?.maxPhotosPerAlbum || 20}
-                    onChange={(e) => updateConfig('gallery', 'maxPhotosPerAlbum', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="5"
-                    max="100"
-                  />
-                </Field>
-
-                <ToggleField
-                  label="Public Albums Only"
-                  help="Only display albums marked as public on RevSport"
-                  checked={config.gallery?.publicOnly || false}
-                  onChange={(val) => updateConfig('gallery', 'publicOnly', val)}
-                />
-
-                <ToggleField
-                  label="Prioritize Recent Albums"
-                  help="Show newest albums first in rotation"
-                  checked={config.gallery?.prioritizeRecent || false}
-                  onChange={(val) => updateConfig('gallery', 'prioritizeRecent', val)}
-                />
-              </Section>
-            </div>
-
-            {/* Events */}
-            <div data-section="events">
-              <Section title="Events Settings" icon="📅">
-                <Field label="Max Events to Display" help="Maximum number of events to show in the events panel">
-                  <input
-                    type="number"
-                    value={config.events?.maxEventsToDisplay || 7}
-                    onChange={(e) => updateConfig('events', 'maxEventsToDisplay', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="1"
-                    max="20"
-                  />
-                </Field>
-
-                <Field label="Days Ahead to Show" help="How far into the future to display events">
-                  <input
-                    type="number"
-                    value={config.events?.daysAhead || 90}
-                    onChange={(e) => updateConfig('events', 'daysAhead', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="7"
-                    max="365"
-                  />
-                </Field>
-
-                <ToggleField
-                  label="Show Past Events"
-                  help="Include events that have already occurred"
-                  checked={config.events?.showPastEvents || false}
-                  onChange={(val) => updateConfig('events', 'showPastEvents', val)}
-                />
-              </Section>
-            </div>
-
             {/* News */}
             <div data-section="news">
               <Section title="News Settings" icon="📰">
-                <Field label="Max Items to Display" help="Maximum number of news articles to show in rotation">
-                  <input
-                    type="number"
-                    value={config.news?.maxItemsToDisplay || 10}
-                    onChange={(e) => updateConfig('news', 'maxItemsToDisplay', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="1"
-                    max="50"
-                  />
-                </Field>
-
                 <Field label="Max Content Length" help="Maximum character count for news content (will truncate)">
                   <input
                     type="number"
@@ -663,28 +528,12 @@ function ConfigEditor() {
                   />
                 </Field>
 
-                <SubSection title="Content Filters">
-                  <ToggleField
-                    label="Show Featured Only"
-                    help="Only display news items marked as featured"
-                    checked={config.news?.showFeaturedOnly || false}
-                    onChange={(val) => updateConfig('news', 'showFeaturedOnly', val)}
-                  />
-
-                  <ToggleField
-                    label="Show Results"
-                    help="Include race results and competition outcomes"
-                    checked={config.news?.showResults !== false}
-                    onChange={(val) => updateConfig('news', 'showResults', val)}
-                  />
-
-                  <ToggleField
-                    label="Show Announcements"
-                    help="Include club announcements and updates"
-                    checked={config.news?.showAnnouncements !== false}
-                    onChange={(val) => updateConfig('news', 'showAnnouncements', val)}
-                  />
-                </SubSection>
+                <ToggleField
+                  label="Show Featured Only"
+                  help="Only display news items marked as featured"
+                  checked={config.news?.showFeaturedOnly || false}
+                  onChange={(val) => updateConfig('news', 'showFeaturedOnly', val)}
+                />
               </Section>
             </div>
 
@@ -738,13 +587,6 @@ function ConfigEditor() {
                     <option value="imperial">Imperial (°F, mph)</option>
                   </select>
                 </Field>
-
-                <ToggleField
-                  label="Show Forecast"
-                  help="Display weather forecast in addition to current conditions"
-                  checked={config.weather?.showForecast || false}
-                  onChange={(val) => updateConfig('weather', 'showForecast', val)}
-                />
               </Section>
             </div>
 
@@ -811,127 +653,6 @@ function ConfigEditor() {
               </Section>
             </div>
 
-            {/* Fallback Settings */}
-            <div data-section="fallback">
-              <Section title="Fallback Settings" icon="🔄">
-                <div style={styles.infoBox}>
-                  <strong>💡 Purpose:</strong> Fallback settings provide default content when the scraper fails or data is unavailable.
-                </div>
-
-                <ToggleField
-                  label="Enable Fallback Mode"
-                  help="Show fallback content when scraped data is unavailable"
-                  checked={config.fallback?.enabled !== false}
-                  onChange={(val) => updateConfig('fallback', 'enabled', val)}
-                />
-
-                <Field label="Fallback Logo Path" help="Local path to fallback club logo">
-                  <input
-                    type="text"
-                    value={config.fallback?.clubLogoPath || ''}
-                    onChange={(e) => updateConfig('fallback', 'clubLogoPath', e.target.value)}
-                    style={styles.input}
-                    placeholder="/assets/logo.png"
-                  />
-                </Field>
-
-                <Field label="Fallback Message" help="Message to display when using fallback content">
-                  <input
-                    type="text"
-                    value={config.fallback?.message || ''}
-                    onChange={(e) => updateConfig('fallback', 'message', e.target.value)}
-                    style={styles.input}
-                    placeholder="Check our website for the latest updates"
-                  />
-                </Field>
-              </Section>
-            </div>
-
-            {/* Scraper */}
-            <div data-section="scraper">
-              <Section title="Scraper Configuration" icon="🕷️">
-                <div style={styles.warningBox}>
-                  <strong>⚠️ Warning:</strong> Changing scraper settings may affect data collection reliability. Test thoroughly after changes.
-                </div>
-
-                <ToggleField
-                  label="Schedule Hourly Scraping"
-                  help="Automatically run scraper every hour via cron job (requires server setup)"
-                  checked={config.scraper?.scheduleHourly !== false}
-                  onChange={(val) => updateConfig('scraper', 'scheduleHourly', val)}
-                />
-
-                <Field label="Max Retries" help="Number of retry attempts if scraper fails">
-                  <input
-                    type="number"
-                    value={config.scraper?.maxRetries || 3}
-                    onChange={(e) => updateConfig('scraper', 'maxRetries', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="1"
-                    max="10"
-                  />
-                </Field>
-
-                <Field label="Timeout (seconds)" help="Maximum time to wait for page loads">
-                  <input
-                    type="number"
-                    value={config.scraper?.timeoutSeconds || 30}
-                    onChange={(e) => updateConfig('scraper', 'timeoutSeconds', parseInt(e.target.value))}
-                    style={styles.input}
-                    min="10"
-                    max="120"
-                  />
-                </Field>
-              </Section>
-            </div>
-
-            {/* Advanced */}
-            <div data-section="advanced">
-              <Section title="Advanced Settings" icon="⚙️">
-                <SubSection title="Animations & Effects">
-                  <ToggleField
-                    label="Enable Animations"
-                    help="Enable smooth transitions and animations throughout the interface"
-                    checked={config.advanced?.enableAnimations !== false}
-                    onChange={(val) => updateConfig('advanced', 'enableAnimations', val)}
-                  />
-
-                  <ToggleField
-                    label="Enable Ken Burns Effect"
-                    help="Apply slow pan/zoom effect to photos in the hero panel"
-                    checked={config.advanced?.enableKenBurnsEffect !== false}
-                    onChange={(val) => updateConfig('advanced', 'enableKenBurnsEffect', val)}
-                  />
-
-                  <Field label="Transition Duration (ms)" help="Duration of content transitions">
-                    <input
-                      type="number"
-                      value={config.advanced?.transitionDuration || 500}
-                      onChange={(e) => updateConfig('advanced', 'transitionDuration', parseInt(e.target.value))}
-                      style={styles.input}
-                      min="100"
-                      max="2000"
-                    />
-                  </Field>
-                </SubSection>
-
-                <SubSection title="Debugging">
-                  <Field label="Log Level" help="Console logging verbosity">
-                    <select
-                      value={config.advanced?.logLevel || 'info'}
-                      onChange={(e) => updateConfig('advanced', 'logLevel', e.target.value)}
-                      style={styles.select}
-                    >
-                      <option value="error">Error (minimal)</option>
-                      <option value="warn">Warning</option>
-                      <option value="info">Info (recommended)</option>
-                      <option value="debug">Debug (verbose)</option>
-                    </select>
-                  </Field>
-                </SubSection>
-              </Section>
-            </div>
-
             {/* Bottom padding for scroll */}
             <div style={{ height: '100px' }}></div>
           </div>
@@ -990,21 +711,21 @@ function OverviewDashboard({ config, healthData, hasUnsavedChanges }) {
           status="configured"
         />
         <StatCard
-          icon="📸"
-          label="Gallery Albums"
-          value={`Up to ${config.gallery?.maxAlbumsToDisplay || 0}`}
-          status="configured"
-        />
-        <StatCard
-          icon="📅"
-          label="Events Display"
-          value={`${config.events?.maxEventsToDisplay || 0} events`}
+          icon="⏱️"
+          label="Hero Rotation"
+          value={`${config.timing?.heroRotationSeconds || 0}s`}
           status="configured"
         />
         <StatCard
           icon="📰"
-          label="News Items"
-          value={`${config.news?.maxItemsToDisplay || 0} articles`}
+          label="News Rotation"
+          value={`${config.timing?.newsPanelRotationSeconds || 0}s`}
+          status="configured"
+        />
+        <StatCard
+          icon="🌤️"
+          label="Weather Location"
+          value={config.weather?.location || 'Not set'}
           status="configured"
         />
       </div>

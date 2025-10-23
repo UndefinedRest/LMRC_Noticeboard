@@ -845,11 +845,4 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
 // MOUNT THE APPLICATION
 // ============================================================
 
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  ReactDOM.render(<Noticeboard />, rootElement);
-} else {
-  console.error('Root element not found! Make sure index.html has <div id="root"></div>');
-}
-
 export default Noticeboard;

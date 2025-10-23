@@ -272,6 +272,116 @@ app.get('/api/config', async (req, res) => {
 });
 
 /**
+ * GET /api/config/full
+ * Returns complete configuration for admin interface
+ */
+app.get('/api/config/full', async (req, res) => {
+  const config = await readJSONFile(CONFIG_PATH);
+
+  if (!config) {
+    return res.status(404).json({
+      error: 'Configuration not available',
+      message: 'config.json not found'
+    });
+  }
+
+  res.json(config);
+});
+
+/**
+ * POST /api/config/update
+ * Updates configuration with validation
+ */
+app.post('/api/config/update', async (req, res) => {
+  try {
+    const newConfig = req.body;
+
+    // Basic validation
+    if (!newConfig || typeof newConfig !== 'object') {
+      return res.status(400).json({
+        error: 'Invalid configuration',
+        message: 'Request body must be a valid JSON object'
+      });
+    }
+
+    // Validate required sections exist
+    const requiredSections = ['display', 'timing', 'branding', 'gallery', 'events', 'news', 'weather'];
+    const missingSections = requiredSections.filter(section => !newConfig[section]);
+
+    if (missingSections.length > 0) {
+      return res.status(400).json({
+        error: 'Missing required sections',
+        message: `Configuration must include: ${missingSections.join(', ')}`
+      });
+    }
+
+    // Create backup of current config
+    const currentConfig = await readJSONFile(CONFIG_PATH);
+    if (currentConfig) {
+      const backupPath = path.join(__dirname, 'config.json.backup');
+      await fs.writeFile(backupPath, JSON.stringify(currentConfig, null, 2));
+      console.log('[Config] Backup created at config.json.backup');
+    }
+
+    // Write new configuration
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
+    console.log('[Config] Configuration updated successfully');
+
+    res.json({
+      success: true,
+      message: 'Configuration updated successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Config] Error updating configuration:', err);
+    res.status(500).json({
+      error: 'Failed to update configuration',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/config/reset
+ * Restore configuration from backup
+ */
+app.post('/api/config/reset', async (req, res) => {
+  try {
+    const backupPath = path.join(__dirname, 'config.json.backup');
+
+    if (!existsSync(backupPath)) {
+      return res.status(404).json({
+        error: 'No backup available',
+        message: 'config.json.backup not found'
+      });
+    }
+
+    const backupConfig = await readJSONFile(backupPath);
+    if (!backupConfig) {
+      return res.status(500).json({
+        error: 'Failed to read backup',
+        message: 'Backup file is corrupted or invalid'
+      });
+    }
+
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(backupConfig, null, 2));
+    console.log('[Config] Configuration restored from backup');
+
+    res.json({
+      success: true,
+      message: 'Configuration restored from backup',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Config] Error restoring configuration:', err);
+    res.status(500).json({
+      error: 'Failed to restore configuration',
+      message: err.message
+    });
+  }
+});
+
+/**
  * GET /api/health
  * Health check endpoint
  */

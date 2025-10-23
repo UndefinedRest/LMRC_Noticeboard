@@ -7,34 +7,47 @@ console.log('=== SCRAPER FILE LOADING ===');
 
 import puppeteer from 'puppeteer';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 console.log('=== IMPORTS LOADED ===');
-console.log('Username:', process.env.REVSPORT_USERNAME ? 'Found' : 'MISSING');
-console.log('Password:', process.env.REVSPORT_PASSWORD ? 'Found' : 'MISSING');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BASE_URL = 'https://www.lakemacquarierowingclub.org.au';
+// Load configuration synchronously at startup
+const CONFIG_PATH = path.join(__dirname, '../config.json');
+let config = {};
+try {
+  const configData = fsSync.readFileSync(CONFIG_PATH, 'utf-8');
+  config = JSON.parse(configData);
+} catch (err) {
+  console.error('Error loading config.json:', err.message);
+  process.exit(1);
+}
+
+const BASE_URL = config.scraper?.baseUrl || 'https://www.lakemacquarierowingclub.org.au';
+const PATHS = config.scraper?.paths || {
+  login: '/login',
+  gallery: '/gallery',
+  events: '/events/list',
+  news: '/news',
+  sponsors: '/home'
+};
 const DATA_DIR = path.join(__dirname, '../data');
-const MAX_RETRIES = 3;
-const PAGE_TIMEOUT = 30000;
+const MAX_RETRIES = config.scraper?.maxRetries || 3;
+const PAGE_TIMEOUT = (config.scraper?.timeoutSeconds || 30) * 1000;
 
 class NoticeboardScraper {
   constructor() {
     this.browser = null;
     this.page = null;
-    this.authenticated = false;
   }
 
   async init() {
-    console.log('[NoticeboardScraper] Initializing...');
-    
+    console.log('[NoticeboardScraper] Initializing browser...');
+
     this.browser = await puppeteer.launch({
       headless: 'new',
       args: [
@@ -49,49 +62,14 @@ class NoticeboardScraper {
     await this.page.setViewport({ width: 1920, height: 1080 });
     await this.page.setDefaultTimeout(PAGE_TIMEOUT);
 
-    await this.authenticate();
-  }
-
-  async authenticate() {
-    console.log('🔐 Authenticating with RevSport...');
-
-    try {
-      await this.page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2' });
-
-      const csrfToken = await this.page.$eval('input[name="_token"]', el => el.value);
-      console.log('[Auth] CSRF token extracted');
-
-      await this.page.type('#username', process.env.REVSPORT_USERNAME);
-      await this.page.type('#password', process.env.REVSPORT_PASSWORD);
-
-      await Promise.all([
-        this.page.waitForNavigation({ waitUntil: 'networkidle2' }),
-        this.page.click('button[type="submit"]')
-      ]);
-
-      const isAuthenticated = await this.page.evaluate(() => {
-        return document.body.textContent.includes('Log out') ||
-               document.body.textContent.includes('Logout');
-      });
-
-      if (isAuthenticated) {
-        console.log('✓ Authentication successful');
-        this.authenticated = true;
-      } else {
-        throw new Error('Authentication failed');
-      }
-
-    } catch (err) {
-      console.error('[Auth] ERROR:', err.message);
-      throw err;
-    }
+    console.log('✓ Browser initialized');
   }
 
   async scrapeGallery() {
     console.log('\n[Gallery] Scraping gallery...');
 
     try {
-      await this.page.goto(`${BASE_URL}/gallery`, { waitUntil: 'networkidle2' });
+      await this.page.goto(`${BASE_URL}${PATHS.gallery}`, { waitUntil: 'networkidle2' });
       await this.page.waitForSelector('a[href*="/gallery/"]', { timeout: 10000 });
 
       const albums = await this.page.evaluate(() => {
@@ -219,11 +197,10 @@ class NoticeboardScraper {
   }
 
   async scrapeEvents() {
-    console.log('\n[Events] Scraping events from WordPress site...');
+    console.log('\n[Events] Scraping events...');
 
     try {
-      // Navigate to the WordPress events page (no authentication required)
-      await this.page.goto(`${BASE_URL}/events/list`, { waitUntil: 'networkidle2' });
+      await this.page.goto(`${BASE_URL}${PATHS.events}`, { waitUntil: 'networkidle2' });
 
       // Wait for event cards to load
       await this.page.waitForSelector('.card.card-hover', { timeout: 10000 });
@@ -305,7 +282,7 @@ class NoticeboardScraper {
     console.log('\n[News] Scraping news...');
 
     try {
-      await this.page.goto(`${BASE_URL}/news`, { waitUntil: 'networkidle2' });
+      await this.page.goto(`${BASE_URL}${PATHS.news}`, { waitUntil: 'networkidle2' });
       await this.page.waitForSelector('a[href*="/news/"]', { timeout: 10000 });
 
       const newsLinks = await this.page.evaluate(() => {
@@ -424,7 +401,7 @@ class NoticeboardScraper {
     console.log('\n[Sponsors] Scraping sponsors...');
 
     try {
-      await this.page.goto(`${BASE_URL}/home`, { waitUntil: 'networkidle2' });
+      await this.page.goto(`${BASE_URL}${PATHS.sponsors}`, { waitUntil: 'networkidle2' });
 
       // Wait for sponsor images to load (try multiple selectors)
       await new Promise(resolve => setTimeout(resolve, 3000));

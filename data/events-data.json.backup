@@ -1,11 +1,150 @@
 {
   "events": [
     {
-      "title": "07:00 - 09:00Time Trial 2",
-      "date": "",
-      "url": "https://www.lakemacquarierowingclub.org.au/events/310032",
+      "title": "Lake Macquarie Derby Day",
+      "date": "Sun 26 Oct 2025 06:00",
+      "location": "Closed",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/320647",
+      "eventId": "320647",
+      "type": "event"
+    },
+    {
+      "title": "Lake Macquarie Derby Day",
+      "date": "Sun 26 Oct 2025 07:00",
+      "location": "Closed",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310006",
+      "eventId": "310006",
+      "type": "event"
+    },
+    {
+      "title": "Newcastle Grammar School Regatta",
+      "date": "Sat 01 Nov 2025 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310007",
+      "eventId": "310007",
+      "type": "event"
+    },
+    {
+      "title": "CDRA Sprint Champs",
+      "date": "Sun 09 Nov 2025 07:00",
+      "location": "Throsby Creek, Carrington NSW",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310008",
+      "eventId": "310008",
+      "type": "event"
+    },
+    {
+      "title": "Hunter Valley Grammar School Regatta",
+      "date": "Sat 15 Nov 2025 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310009",
+      "eventId": "310009",
+      "type": "event"
+    },
+    {
+      "title": "Newcastle Uni Boat Club Regatta",
+      "date": "Sun 16 Nov 2025 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310010",
+      "eventId": "310010",
+      "type": "event"
+    },
+    {
+      "title": "NSW Sprint Championships",
+      "date": "Sun 30 Nov 2025 07:00",
+      "location": "Sydney International Regatta Centre (SIRC)",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310011",
+      "eventId": "310011",
+      "type": "event"
+    },
+    {
+      "title": "RNSW Reindeer Regatta",
+      "date": "Sat 06 Dec 2025 07:00",
+      "location": "Sydney International Regatta Centre (SIRC)",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310012",
+      "eventId": "310012",
+      "type": "event"
+    },
+    {
+      "title": "Taree Summer Regatta",
+      "date": "Fri 09 Jan 2026 07:00 — Sun 11 Jan 2026 17:00",
+      "location": "Manning River",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310013",
+      "eventId": "310013",
+      "type": "event"
+    },
+    {
+      "title": "ROWvivor Learn to Row Information Day",
+      "date": "Sat 24 Jan 2026 10:00",
+      "location": "Lake Macquarie Rowing Club",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310023",
+      "eventId": "310023",
+      "type": "event"
+    },
+    {
+      "title": "RNSW Small Boats Regatta",
+      "date": "Sat 31 Jan 2026 07:00",
+      "location": "Sydney International Regatta Centre (SIRC)",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310014",
+      "eventId": "310014",
+      "type": "event"
+    },
+    {
+      "title": "Lake Macquarie Rowing Club Regatta",
+      "date": "Sat 07 Feb 2026 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310016",
+      "eventId": "310016",
+      "type": "event"
+    },
+    {
+      "title": "Endeavour Rowing Club Regatta",
+      "date": "Sun 08 Feb 2026 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310017",
+      "eventId": "310017",
+      "type": "event"
+    },
+    {
+      "title": "NSW Rowing Championships",
+      "date": "Fri 20 Feb 2026 07:00 — Sun 22 Feb 2026 17:00",
+      "location": "Sydney International Regatta Centre (SIRC)",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310018",
+      "eventId": "310018",
+      "type": "event"
+    },
+    {
+      "title": "CDRA Championships",
+      "date": "Sat 07 Mar 2026 07:00 — Sun 08 Mar 2026 17:00",
+      "location": "Manning River",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310019",
+      "eventId": "310019",
+      "type": "event"
+    },
+    {
+      "title": "CDRA Masters Regatta",
+      "date": "Sat 18 Apr 2026 07:00",
+      "location": "Berry Park via Morpeth",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310020",
+      "eventId": "310020",
+      "type": "event"
+    },
+    {
+      "title": "NSW Masters Championships",
+      "date": "Sat 16 May 2026 07:00 — Sun 17 May 2026 17:00",
+      "location": "Sydney International Regatta Centre (SIRC)",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310021",
+      "eventId": "310021",
+      "type": "event"
+    },
+    {
+      "title": "2026 Aust Masters Rowing Championships",
+      "date": "Wed 27 May 2026 07:00 — Sat 30 May 2026 17:00",
+      "location": "Lake Macquarie Rowing Club",
+      "url": "https://www.lakemacquarierowingclub.org.au/events/310022",
+      "eventId": "310022",
       "type": "event"
     }
   ],
-  "scrapedAt": "2025-10-20T00:27:47.018Z"
+  "totalEvents": 18,
+  "scrapedAt": "2025-10-22T08:14:06.575Z"
 }
