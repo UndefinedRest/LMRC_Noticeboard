@@ -16,6 +16,13 @@ function Noticeboard() {
   const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
   const [sponsorGroupIndex, setSponsorGroupIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState({
+    timestamp: null,
+    success: false
+  });
+  const [lastScrape, setLastScrape] = useState({
+    timestamp: null
+  });
 
   // Fetch configuration
   useEffect(() => {
@@ -116,6 +123,9 @@ function Noticeboard() {
         fetch('/api/sponsors')
       ]);
 
+      // Check if any response failed
+      const allSuccess = galleryRes.ok && eventsRes.ok && newsRes.ok && sponsorsRes.ok;
+
       const galleryData = await galleryRes.json();
       const eventsData = await eventsRes.json();
       const newsData = await newsRes.json();
@@ -125,8 +135,36 @@ function Noticeboard() {
       setEvents(eventsData);
       setNews(newsData);
       setSponsors(sponsorsData);
+
+      // Extract oldest scrape time from all data sources
+      const scrapeTimes = [
+        galleryData.scrapedAt,
+        eventsData.scrapedAt,
+        newsData.scrapedAt,
+        sponsorsData.scrapedAt
+      ].filter(Boolean).map(t => new Date(t));
+
+      const oldestScrape = scrapeTimes.length > 0
+        ? new Date(Math.min(...scrapeTimes))
+        : null;
+
+      setLastScrape({
+        timestamp: oldestScrape
+      });
+
+      // Track refresh - only green if all responses were OK
+      setLastRefresh({
+        timestamp: new Date(),
+        success: allSuccess
+      });
     } catch (err) {
       console.error('Error fetching data:', err);
+
+      // Track failed refresh
+      setLastRefresh({
+        timestamp: new Date(),
+        success: false
+      });
     }
   };
 
@@ -293,10 +331,13 @@ function Noticeboard() {
       </div>
 
       {/* FOOTER */}
-      <Footer 
+      <Footer
         sponsorGroup={currentSponsorGroup}
         config={config}
         colors={colors}
+        lastRefresh={lastRefresh}
+        lastScrape={lastScrape}
+        currentTime={currentTime}
       />
     </div>
   );
@@ -682,7 +723,36 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
 // FOOTER - SPONSORS CAROUSEL & SOCIAL MEDIA
 // ============================================================
 
-function Footer({ sponsorGroup, config, colors }) {
+function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, currentTime }) {
+  const formatRefreshTime = () => {
+    if (!lastRefresh.timestamp) return '--:--';
+    return lastRefresh.timestamp.toLocaleTimeString('en-AU', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatScrapeTime = () => {
+    if (!lastScrape.timestamp) return 'Never';
+
+    const now = currentTime || new Date();
+    const scrapeTime = new Date(lastScrape.timestamp);
+    const diffMs = now - scrapeTime;
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes === 1) return '1 minute ago';
+    if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours === 1) return '1 hour ago';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
+  };
+
   return (
     <div className="h-32 flex flex-col">
       {/* Sponsors Row - White Background */}
@@ -719,37 +789,53 @@ function Footer({ sponsorGroup, config, colors }) {
 
       {/* Social Media Row - Blue Background */}
       <div
-        className="py-3 flex items-center justify-center gap-6 px-8"
+        className="py-3 flex items-center justify-between px-8"
         style={{ backgroundColor: colors.primary, color: 'white' }}
       >
-        {config.socialMedia?.facebook?.enabled && (
-          <a
-            href={config.socialMedia.facebook.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 transition-opacity hover:opacity-70"
-            style={{ color: 'white', textDecoration: 'none' }}
+        {/* Social Media Icons - Left/Center */}
+        <div className="flex items-center gap-6">
+          {config.socialMedia?.facebook?.enabled && (
+            <a
+              href={config.socialMedia.facebook.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              style={{ color: 'white', textDecoration: 'none' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span className="text-sm font-medium">{config.socialMedia.facebook.handle}</span>
+            </a>
+          )}
+          {config.socialMedia?.instagram?.enabled && (
+            <a
+              href={config.socialMedia.instagram.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              style={{ color: 'white', textDecoration: 'none' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              <span className="text-sm font-medium">{config.socialMedia.instagram.handle}</span>
+            </a>
+          )}
+        </div>
+
+        {/* Data Scrape Status - Right */}
+        <div className="flex items-center gap-2 text-xs" style={{ opacity: 0.7 }}>
+          <span
+            style={{
+              color: lastRefresh.success ? '#4ADE80' : '#EF4444',
+              fontSize: '16px'
+            }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            <span className="text-sm font-medium">{config.socialMedia.facebook.handle}</span>
-          </a>
-        )}
-        {config.socialMedia?.instagram?.enabled && (
-          <a
-            href={config.socialMedia.instagram.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 transition-opacity hover:opacity-70"
-            style={{ color: 'white', textDecoration: 'none' }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-            </svg>
-            <span className="text-sm font-medium">{config.socialMedia.instagram.handle}</span>
-          </a>
-        )}
+            ●
+          </span>
+          <span>Last update: {formatScrapeTime()}</span>
+        </div>
       </div>
     </div>
   );
