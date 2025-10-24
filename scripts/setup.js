@@ -37,15 +37,6 @@ async function setup() {
       const instagramHandle = await question('Instagram Handle (e.g., @lmrc_rowing): ') || '@lmrc_rowing';
       
       const defaultConfig = {
-        display: {
-          name: "LMRC Noticeboard",
-          resolution: { width: 1920, height: 1080 },
-          layout: {
-            leftPanelWidth: 25,
-            centerPanelWidth: 50,
-            rightPanelWidth: 25
-          }
-        },
         timing: {
           heroRotationSeconds: 15,
           newsPanelRotationSeconds: 45,
@@ -77,18 +68,6 @@ async function setup() {
             url: `https://instagram.com/${instagramHandle.replace('@', '')}`
           }
         },
-        sponsors: [],
-        gallery: {
-          maxAlbumsToDisplay: 10,
-          publicOnly: true,
-          maxPhotosPerAlbum: 20,
-          prioritizeRecent: true
-        },
-        events: {
-          maxEventsToDisplay: 7,
-          showPastEvents: false,
-          daysAhead: 90
-        },
         news: {
           itemRotationSeconds: 45,
           showFeaturedOnly: false,
@@ -96,14 +75,9 @@ async function setup() {
         },
         weather: {
           location: "Morisset",
-          bomStationId: "061055",
-          showForecast: false
-        },
-        fallback: {
-          enabled: true,
-          clubLogoPath: "/assets/logo.png",
-          genericImages: [],
-          message: "Check our website for the latest updates"
+          latitude: -33.0333,
+          longitude: 151.6,
+          units: "metric"
         },
         scraper: {
           baseUrl: "https://www.lakemacquarierowingclub.org.au",

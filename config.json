@@ -1,16 +1,4 @@
 {
-  "display": {
-    "name": "LMRC Noticeboard",
-    "resolution": {
-      "width": 1920,
-      "height": 1080
-    },
-    "layout": {
-      "leftPanelWidth": 25,
-      "centerPanelWidth": 50,
-      "rightPanelWidth": 25
-    }
-  },
   "timing": {
     "heroRotationSeconds": 15,
     "newsPanelRotationSeconds": 45,
@@ -42,17 +30,6 @@
       "handle": "@lakemacquarierowingclub",
       "url": "https://www.instagram.com/lakemacquarierowingclub"
     }
-  },
-  "gallery": {
-    "maxAlbumsToDisplay": 10,
-    "publicOnly": true,
-    "maxPhotosPerAlbum": 20,
-    "prioritizeRecent": true
-  },
-  "events": {
-    "maxEventsToDisplay": 7,
-    "showPastEvents": false,
-    "daysAhead": 90
   },
   "news": {
     "itemRotationSeconds": 45,
