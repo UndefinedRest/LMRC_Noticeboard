@@ -653,10 +653,10 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
   }
 
   // Truncate content if too long
-  const maxLength = config?.news?.maxContentLength || 500;
+  const maxLength = config?.news?.maxContentLength || 2000;
   const content = article.content || article.excerpt || '';
-  const displayContent = content.length > maxLength 
-    ? content.substring(0, maxLength) + '...' 
+  const displayContent = content.length > maxLength
+    ? content.substring(0, maxLength) + '...'
     : content;
 
   return (
@@ -696,12 +696,8 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
         </div>
 
         {/* Article Content */}
-        <div 
+        <div
           className="text-base leading-relaxed opacity-90"
-          style={{ 
-            maxHeight: '60vh',
-            overflowY: 'hidden'
-          }}
         >
           {displayContent.split('\n\n').map((paragraph, idx) => (
             <p key={idx} className="mb-3">

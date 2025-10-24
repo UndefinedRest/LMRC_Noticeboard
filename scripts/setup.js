@@ -71,7 +71,7 @@ async function setup() {
         news: {
           itemRotationSeconds: 45,
           showFeaturedOnly: false,
-          maxContentLength: 1000
+          maxContentLength: 2000
         },
         weather: {
           location: "Morisset",
