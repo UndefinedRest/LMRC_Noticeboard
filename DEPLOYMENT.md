@@ -526,6 +526,28 @@ ls -lh data/
 
 ---
 
+#### Configure Environment Variables (Optional - 1 minute)
+
+If you want to use OpenWeatherMap for weather data:
+
+```bash
+# Create .env file
+nano .env
+```
+
+**Add your OpenWeatherMap API key:**
+```bash
+# Weather API (OpenWeatherMap) - Optional
+# Get your free API key at: https://openweathermap.org/api
+OPENWEATHERMAP_API_KEY=your_api_key_here
+```
+
+**Save and exit:** Ctrl+X, Y, Enter
+
+**Note:** This is optional. Weather will still work using BOM data from `config.json` without an API key.
+
+---
+
 #### Test the Server (2 minutes)
 
 ```bash
@@ -1185,6 +1207,7 @@ Track your progress:
 **Application:**
 - [ ] Repository cloned/copied
 - [ ] npm install completed successfully
+- [ ] .env file created (optional, for OpenWeatherMap API)
 - [ ] Frontend built (`npm run build`)
 - [ ] Scraper tested successfully
 - [ ] Server tested in browser (localhost:3000)
