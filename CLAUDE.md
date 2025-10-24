@@ -18,7 +18,8 @@ The application has a **3-layer architecture** running on a single device (Raspb
    - Scrapes gallery albums, events, news articles, and sponsors
    - Captures ALL photos from each album (no artificial limits)
    - Saves data to local JSON files in `data/` directory
-   - Runs hourly via cron job (production) or manually via `npm run scrape`
+   - **Automated scheduling** via built-in scheduler (configurable via web UI)
+   - Manual trigger available from config page
    - Fast: ~4s total execution time, ~50MB memory footprint
 
 2. **API Server Layer** (`server.js`)
@@ -220,10 +221,11 @@ pm2 startup
 pm2 save
 ```
 
-**Automated Scraping**: Crontab entry
-```cron
-5 * * * * cd /home/pi/lmrc-noticeboard && node scraper/noticeboard-scraper.js >> scraper.log 2>&1
-```
+**Automated Scraping**: Built-in scheduler (no cron setup needed!)
+- Configure schedule via web UI at `http://localhost:3000/config`
+- Default: runs hourly (configurable to 2, 3, 4, 6, 12 hours, or daily)
+- Auto-runs on server startup
+- Manual trigger available from config page
 
 **Kiosk Mode**: Chromium auto-starts fullscreen on boot (see DEPLOYMENT.md for autostart config)
 
@@ -237,8 +239,8 @@ pm2 save
 
 ## Common Issues
 
-**No data showing**: Run `npm run scrape` to populate `data/` directory, check `ls -lh data/`
-**Stale data warning**: Scraper may have failed, check cron logs or run manually
+**No data showing**: Scraper runs on startup, or manually trigger from config page
+**Stale data warning**: Check scraper status in config page, manually trigger if needed
 **Port 3000 in use**: Change PORT in `.env` or kill existing process on port 3000
 **Scraper fails**: Verify RevSport site is accessible and URLs in `config.json` are correct
 
