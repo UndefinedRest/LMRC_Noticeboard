@@ -51,6 +51,9 @@
       "news": "/news",
       "sponsors": "/home"
     },
+    "scheduleEnabled": true,
+    "schedule": "0 */4 * * *",
+    "runOnStartup": true,
     "maxRetries": 3,
     "timeoutSeconds": 30
   }

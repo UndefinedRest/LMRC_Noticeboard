@@ -758,6 +758,8 @@ function OverviewDashboard({ config, healthData, hasUnsavedChanges }) {
         </div>
       )}
 
+      <ScraperControls />
+
       {hasUnsavedChanges && (
         <div style={{...styles.infoBox, marginTop: '24px', backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107'}}>
           <strong>⚠️ Unsaved Changes:</strong> Your modifications will take effect within 60 seconds after saving.
@@ -808,7 +810,198 @@ function HealthIndicator({ label, status, message }) {
   );
 }
 
-function Section({ title, icon, children }) {
+function ScraperControls() {
+  const [status, setStatus] = useState(null);
+  const [triggering, setTriggering] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 10000); // Update every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/scraper/status');
+      const data = await res.json();
+      setStatus(data);
+    } catch (err) {
+      console.error('Error fetching scraper status:', err);
+    }
+  };
+
+  const triggerScraper = async () => {
+    setTriggering(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/scraper/trigger', { method: 'POST' });
+      const result = await res.json();
+
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Scraper completed successfully!' });
+      } else {
+        setMessage({ type: 'error', text: `Scraper failed: ${result.error || result.message}` });
+      }
+
+      setTimeout(fetchStatus, 2000); // Refresh status after 2s
+    } catch (err) {
+      setMessage({ type: 'error', text: `Error: ${err.message}` });
+    } finally {
+      setTriggering(false);
+      setTimeout(() => setMessage(null), 5000); // Clear message after 5s
+    }
+  };
+
+  const updateSchedule = async (schedule, enabled) => {
+    setUpdating(true);
+    try {
+      const res = await fetch('/api/scraper/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule, enabled })
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setStatus(result.status);
+        setMessage({ type: 'success', text: 'Schedule updated successfully!' });
+      } else {
+        setMessage({ type: 'error', text: `Error: ${result.error}` });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: `Error: ${err.message}` });
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setMessage(null), 5000);
+    }
+  };
+
+  const schedulePresets = [
+    { label: 'Every hour', value: '0 * * * *' },
+    { label: 'Every 2 hours', value: '0 */2 * * *' },
+    { label: 'Every 3 hours', value: '0 */3 * * *' },
+    { label: 'Every 4 hours', value: '0 */4 * * *' },
+    { label: 'Every 6 hours', value: '0 */6 * * *' },
+    { label: 'Every 12 hours', value: '0 */12 * * *' },
+    { label: 'Daily at 6am', value: '0 6 * * *' },
+    { label: 'Daily at 6am & 6pm', value: '0 6,18 * * *' },
+  ];
+
+  return (
+    <div style={{...styles.healthSection, marginTop: '24px'}}>
+      <h3 style={styles.healthTitle}>🔄 Scraper Controls</h3>
+
+      {message && (
+        <div style={{
+          ...styles.infoBox,
+          backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
+          borderLeft: `4px solid ${message.type === 'success' ? '#28a745' : '#dc3545'}`,
+          marginBottom: '16px'
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      {status && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          marginBottom: '16px',
+          padding: '16px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px'
+        }}>
+          <div>
+            <div style={{fontSize: '12px', color: '#666', marginBottom: '4px'}}>Status</div>
+            <div style={{fontSize: '16px', fontWeight: 'bold'}}>
+              {status.isRunning ? '🔄 Running...' : '✅ Idle'}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize: '12px', color: '#666', marginBottom: '4px'}}>Last Run</div>
+            <div style={{fontSize: '14px'}}>
+              {status.lastRun ? new Date(status.lastRun).toLocaleString() : 'Never'}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize: '12px', color: '#666', marginBottom: '4px'}}>Next Run</div>
+            <div style={{fontSize: '14px'}}>
+              {status.nextRun ? new Date(status.nextRun).toLocaleString() : 'Not scheduled'}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize: '12px', color: '#666', marginBottom: '4px'}}>Run Count</div>
+            <div style={{fontSize: '16px', fontWeight: 'bold'}}>{status.runCount}</div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display: 'flex', gap: '12px', marginBottom: '16px'}}>
+        <button
+          onClick={triggerScraper}
+          disabled={triggering || status?.isRunning}
+          style={{
+            ...styles.button,
+            flex: '0 0 auto',
+            backgroundColor: '#28a745',
+            color: 'white',
+            opacity: (triggering || status?.isRunning) ? 0.5 : 1,
+            cursor: (triggering || status?.isRunning) ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {triggering ? '⏳ Running...' : '▶️ Run Scraper Now'}
+        </button>
+      </div>
+
+      <div style={{padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px'}}>
+        <div style={{marginBottom: '16px'}}>
+          <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+            <input
+              type="checkbox"
+              checked={status?.enabled ?? true}
+              onChange={(e) => updateSchedule(status?.schedule, e.target.checked)}
+              disabled={updating}
+              style={{marginRight: '8px'}}
+            />
+            <span style={{fontWeight: '500'}}>Enable Automatic Scraping</span>
+          </label>
+        </div>
+
+        <div style={{marginBottom: '8px'}}>
+          <label style={{display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px'}}>
+            Schedule
+          </label>
+          <select
+            value={status?.schedule || '0 * * * *'}
+            onChange={(e) => updateSchedule(e.target.value, status?.enabled)}
+            disabled={updating || !status?.enabled}
+            style={{
+              ...styles.input,
+              opacity: (!status?.enabled) ? 0.5 : 1
+            }}
+          >
+            {schedulePresets.map(preset => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label} ({preset.value})
+              </option>
+            ))}
+          </select>
+          {status?.scheduleDescription && (
+            <div style={{fontSize: '12px', color: '#666', marginTop: '4px'}}>
+              Current: {status.scheduleDescription}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, icon, children}) {
   return (
     <div style={styles.section}>
       <h2 style={styles.sectionTitle}>

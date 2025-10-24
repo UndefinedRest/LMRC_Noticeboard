@@ -86,7 +86,7 @@
       "isFeatured": false,
       "type": "news",
       "content": "Content not available",
-      "contentLength": 21
+      "contentLength": 0
     },
     {
       "title": "2025 CDRA Masters Regatta",
@@ -97,7 +97,7 @@
       "isFeatured": false,
       "type": "news",
       "content": "Content not available",
-      "contentLength": 21
+      "contentLength": 0
     },
     {
       "title": "2025 Ed Trickett NSW Grade Champs",
@@ -108,7 +108,7 @@
       "isFeatured": false,
       "type": "news",
       "content": "Content not available",
-      "contentLength": 21
+      "contentLength": 0
     },
     {
       "title": "2025 Aust Rowing Champs",
@@ -119,7 +119,7 @@
       "isFeatured": false,
       "type": "news",
       "content": "Content not available",
-      "contentLength": 21
+      "contentLength": 0
     },
     {
       "title": "Time Trial #7",
@@ -200,5 +200,5 @@
     }
   ],
   "totalArticles": 18,
-  "scrapedAt": "2025-10-23T05:29:12.816Z"
+  "scrapedAt": "2025-10-24T01:36:04.907Z"
 }

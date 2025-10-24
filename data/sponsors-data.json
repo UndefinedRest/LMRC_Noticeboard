@@ -1,6 +1,42 @@
 {
   "sponsors": [
     {
+      "name": "Rowing Australia",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/ogs5skysxh9opqbb.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18343",
+      "source": "sponsor-link"
+    },
+    {
+      "name": "Rowing NSW",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/6lfgnixleige8gai.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18328",
+      "source": "sponsor-link"
+    },
+    {
+      "name": "Central Districts Rowing Association",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/htw8csjzx4ydqbqm.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18327",
+      "source": "sponsor-link"
+    },
+    {
+      "name": "The Posy Post",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/z9t4mzmidrxkinbj.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/16355",
+      "source": "sponsor-link"
+    },
+    {
+      "name": "ClinPsych Services",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/6ogpwzuvnragw8uo.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18709",
+      "source": "sponsor-link"
+    },
+    {
+      "name": "Kinetic Sports Physiotherapy",
+      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/s39neyuzacteahxi.png",
+      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18800",
+      "source": "sponsor-link"
+    },
+    {
       "name": "Happy Feet Podiatory",
       "logoUrl": "https://cdn.revolutionise.com.au/sponsors/7faujc5zerxetmfe.png",
       "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18807",
@@ -49,47 +85,11 @@
       "source": "sponsor-link"
     },
     {
-      "name": "Rowing Australia",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/ogs5skysxh9opqbb.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18343",
-      "source": "sponsor-link"
-    },
-    {
-      "name": "Rowing NSW",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/6lfgnixleige8gai.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18328",
-      "source": "sponsor-link"
-    },
-    {
-      "name": "Central Districts Rowing Association",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/htw8csjzx4ydqbqm.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18327",
-      "source": "sponsor-link"
-    },
-    {
-      "name": "The Posy Post",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/z9t4mzmidrxkinbj.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/16355",
-      "source": "sponsor-link"
-    },
-    {
-      "name": "ClinPsych Services",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/6ogpwzuvnragw8uo.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18709",
-      "source": "sponsor-link"
-    },
-    {
-      "name": "Kinetic Sports Physiotherapy",
-      "logoUrl": "https://cdn.revolutionise.com.au/sponsors/s39neyuzacteahxi.png",
-      "url": "https://www.lakemacquarierowingclub.org.au/sponsor/18800",
-      "source": "sponsor-link"
-    },
-    {
       "name": "Nourish & Move for Wellness",
       "logoUrl": "https://cdn.revolutionise.com.au/sponsors/3woaqdazwsh4tscp.png",
       "url": "",
       "source": "standalone-image"
     }
   ],
-  "scrapedAt": "2025-10-23T05:29:31.854Z"
+  "scrapedAt": "2025-10-24T01:36:05.047Z"
 }

@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import dotenv from 'dotenv';
+import ScraperScheduler from './server-scheduler.js';
 
 dotenv.config();
 
@@ -443,6 +444,99 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ============================================================
+// SCRAPER CONTROL ENDPOINTS
+// ============================================================
+
+/**
+ * GET /api/scraper/status
+ * Get scraper status and schedule
+ */
+app.get('/api/scraper/status', (req, res) => {
+  const status = scheduler.getStatus();
+  res.json(status);
+});
+
+/**
+ * POST /api/scraper/trigger
+ * Manually trigger scraper run
+ */
+app.post('/api/scraper/trigger', async (req, res) => {
+  console.log('[API] Manual scraper trigger requested');
+  const result = await scheduler.runScraper();
+  res.json(result);
+});
+
+/**
+ * POST /api/scraper/schedule
+ * Update scraper schedule
+ */
+app.post('/api/scraper/schedule', async (req, res) => {
+  try {
+    const { schedule, enabled } = req.body;
+
+    // Validate cron format if provided
+    if (schedule) {
+      const cron = await import('node-cron');
+      if (!cron.default.validate(schedule)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid cron schedule format'
+        });
+      }
+    }
+
+    // Read current config
+    const currentConfig = await readJSONFile(CONFIG_PATH);
+    if (!currentConfig) {
+      return res.status(500).json({
+        success: false,
+        error: 'Could not read config'
+      });
+    }
+
+    // Update scraper config
+    const newConfig = { ...currentConfig };
+    newConfig.scraper = newConfig.scraper || {};
+
+    if (schedule) {
+      newConfig.scraper.schedule = schedule;
+    }
+
+    if (typeof enabled !== 'undefined') {
+      newConfig.scraper.scheduleEnabled = enabled;
+    }
+
+    // Create backup
+    try {
+      const backupPath = `${CONFIG_PATH}.backup`;
+      await fs.writeFile(backupPath, JSON.stringify(currentConfig, null, 2));
+    } catch (err) {
+      console.warn('[API] Could not create config backup:', err.message);
+    }
+
+    // Save updated config
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
+
+    // Update scheduler
+    scheduler.updateSchedule(schedule, enabled);
+
+    console.log('[API] Scraper schedule updated:', { schedule, enabled });
+
+    res.json({
+      success: true,
+      status: scheduler.getStatus()
+    });
+
+  } catch (err) {
+    console.error('[API] Error updating scraper schedule:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
+// ============================================================
 // SERVE REACT APP
 // ============================================================
 
@@ -475,6 +569,64 @@ app.get('*', (req, res) => {
     `);
   }
 });
+
+// ============================================================
+// INITIALIZE SCRAPER SCHEDULER
+// ============================================================
+
+// Read config synchronously for scheduler initialization
+let config = {};
+try {
+  const configData = existsSync(CONFIG_PATH)
+    ? await fs.readFile(CONFIG_PATH, 'utf-8')
+    : '{}';
+  config = JSON.parse(configData);
+} catch (err) {
+  console.error('[Scheduler] Error loading config:', err.message);
+  config = {};
+}
+
+// Initialize scheduler
+const scheduler = new ScraperScheduler(config);
+
+// Run scraper on startup if configured
+if (config.scraper?.runOnStartup !== false) {
+  console.log('[Scheduler] Running scraper on startup...');
+  scheduler.runScraper().then(result => {
+    if (result.success) {
+      console.log('[Scheduler] Startup scrape completed successfully');
+    } else {
+      console.error('[Scheduler] Startup scrape failed:', result.error || result.message);
+    }
+  });
+}
+
+// Start scheduled scraping
+scheduler.start();
+
+// Watch for config changes to update schedule
+let configWatcher = null;
+try {
+  const fsModule = await import('fs');
+  configWatcher = fsModule.watch(CONFIG_PATH, async (eventType) => {
+    if (eventType === 'change') {
+      try {
+        const newConfigData = await fs.readFile(CONFIG_PATH, 'utf-8');
+        const newConfig = JSON.parse(newConfigData);
+        scheduler.config = newConfig;
+        scheduler.start(); // Restart with new schedule
+        console.log('[Scheduler] Config updated, schedule reloaded');
+      } catch (err) {
+        console.error('[Scheduler] Error reloading config:', err.message);
+      }
+    }
+  });
+} catch (err) {
+  console.warn('[Scheduler] Could not watch config file:', err.message);
+}
+
+// Export scheduler for API endpoints
+export { scheduler };
 
 // ============================================================
 // START SERVER
