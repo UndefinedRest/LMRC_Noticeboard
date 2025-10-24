@@ -433,11 +433,11 @@ function Header({ config, currentTime, weather, colors }) {
 
   return (
     <div
-      className="h-24 grid grid-cols-3 items-center px-8"
+      className="h-24 flex items-center justify-between px-8 relative"
       style={{ backgroundColor: colors.primary, color: 'white' }}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-4">
+      {/* Logo - Left aligned */}
+      <div className="flex items-center gap-4 z-10">
         {config.branding?.clubLogoPath ? (
           <img
             src={config.branding.clubLogoPath}
@@ -453,14 +453,17 @@ function Header({ config, currentTime, weather, colors }) {
         </div>
       </div>
 
-      {/* Date & Time - Centered in middle column */}
-      <div className="text-center">
+      {/* Date & Time - Absolutely centered on screen */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center"
+        style={{ zIndex: 5 }}
+      >
         <div className="text-2xl font-semibold">{formatDate()}</div>
         <div className="text-xl">{formatTime()}</div>
       </div>
 
-      {/* Weather */}
-      <div className="flex items-center gap-4">
+      {/* Weather - Right aligned */}
+      <div className="flex items-center gap-4 z-10">
         {weather && weather.temperature != null ? (
           <>
             <div className="text-5xl">
