@@ -433,7 +433,7 @@ function Header({ config, currentTime, weather, colors }) {
 
   return (
     <div
-      className="h-24 flex items-center justify-between px-8"
+      className="h-24 grid grid-cols-3 items-center px-8"
       style={{ backgroundColor: colors.primary, color: 'white' }}
     >
       {/* Logo */}
@@ -453,7 +453,7 @@ function Header({ config, currentTime, weather, colors }) {
         </div>
       </div>
 
-      {/* Date & Time */}
+      {/* Date & Time - Centered in middle column */}
       <div className="text-center">
         <div className="text-2xl font-semibold">{formatDate()}</div>
         <div className="text-xl">{formatTime()}</div>
