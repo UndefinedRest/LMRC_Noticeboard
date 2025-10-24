@@ -117,6 +117,7 @@ async function setup() {
           scheduleEnabled: true,
           schedule: "0 */4 * * *",
           runOnStartup: true,
+          startupDelaySeconds: 10,
           maxRetries: 3,
           timeoutSeconds: 30
         },

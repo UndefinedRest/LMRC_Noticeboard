@@ -589,16 +589,21 @@ try {
 // Initialize scheduler
 const scheduler = new ScraperScheduler(config);
 
-// Run scraper on startup if configured
+// Run scraper on startup if configured (with delay to ensure network is ready)
 if (config.scraper?.runOnStartup !== false) {
-  console.log('[Scheduler] Running scraper on startup...');
-  scheduler.runScraper().then(result => {
-    if (result.success) {
-      console.log('[Scheduler] Startup scrape completed successfully');
-    } else {
-      console.error('[Scheduler] Startup scrape failed:', result.error || result.message);
-    }
-  });
+  const startupDelay = config.scraper?.startupDelaySeconds || 10;
+  console.log(`[Scheduler] Will run scraper ${startupDelay} seconds after startup (waiting for network)...`);
+
+  setTimeout(() => {
+    console.log('[Scheduler] Running scraper on startup...');
+    scheduler.runScraper().then(result => {
+      if (result.success) {
+        console.log('[Scheduler] Startup scrape completed successfully');
+      } else {
+        console.error('[Scheduler] Startup scrape failed:', result.error || result.message);
+      }
+    });
+  }, startupDelay * 1000);
 }
 
 // Start scheduled scraping
