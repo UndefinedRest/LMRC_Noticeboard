@@ -515,6 +515,12 @@ function LeftPanel({ events, colors }) {
                   {event.date && (
                     <div className="text-sm opacity-80 mt-1">{event.date}</div>
                   )}
+                  {event.location && (
+                    <div className="text-sm opacity-80 mt-1 flex items-center gap-1">
+                      <span>📍</span>
+                      <span>{event.location}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
