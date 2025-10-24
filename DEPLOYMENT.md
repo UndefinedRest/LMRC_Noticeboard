@@ -104,7 +104,7 @@ chmod +x install.sh
 ./install.sh
 
 # Follow prompts - it will:
-# - Install Node.js, Chromium, PM2
+# - Install Node.js, Chromium, emoji fonts, PM2
 # - Build the app
 # - Configure autostart
 # - Start the server with PM2
@@ -378,6 +378,24 @@ chromium-browser --version
 ```
 
 **Note:** The scraper doesn't need a browser - it uses lightweight HTML parsing.
+
+---
+
+#### Install Emoji Font Support (2 minutes)
+
+The configuration web interface uses emoji icons. Install emoji font support:
+
+```bash
+# Install emoji font
+sudo apt-get install -y fonts-noto-color-emoji
+
+# Refresh font cache
+fc-cache -f -v
+```
+
+**What this fixes:** Without emoji fonts, the config page at `http://localhost:3000/config` will show empty squares instead of icons (📊, 🎨, ⏱️, 📰, 🌤️, 📱).
+
+**Note:** You'll see the emoji icons properly after rebooting the Pi.
 
 ---
 
@@ -872,6 +890,27 @@ chromium-browser --kiosk --app=http://localhost:3000
 
 ---
 
+### Problem: Config page icons showing as empty squares
+
+**Symptom:** When you open `http://localhost:3000/config`, the navigation icons appear as empty squares (��) instead of emojis.
+
+**Solution:**
+```bash
+# Install emoji font support
+sudo apt-get update
+sudo apt-get install -y fonts-noto-color-emoji
+
+# Refresh font cache
+fc-cache -f -v
+
+# Reboot to apply changes
+sudo reboot
+```
+
+**What's happening:** Raspberry Pi OS doesn't include emoji fonts by default. The config interface uses emoji icons (📊, 🎨, ⏱️, 📰, 🌤️, 📱) which require the `fonts-noto-color-emoji` package.
+
+---
+
 ### Problem: Weather not showing
 
 **Update BOM station ID:**
@@ -1137,8 +1176,9 @@ Track your progress:
 **Software:**
 - [ ] System updated (`apt update` & `upgrade`)
 - [ ] IP address noted down
-- [ ] Node.js installed (v20.x)
+- [ ] Node.js installed (v20.x or 22.x)
 - [ ] Chromium installed
+- [ ] Emoji fonts installed
 - [ ] Git installed
 - [ ] PM2 installed
 

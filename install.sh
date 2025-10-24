@@ -53,6 +53,10 @@ echo "✓ npm version: $(npm --version)"
 echo "📦 Installing Chromium browser..."
 sudo apt install -y chromium-browser
 
+# Install emoji font support (for config page icons)
+echo "📦 Installing emoji font support..."
+sudo apt-get install -y fonts-noto-color-emoji
+
 # Install git
 echo "📦 Installing git..."
 sudo apt install -y git
