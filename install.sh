@@ -99,11 +99,20 @@ read
 
 pm2 save
 
-# Configure autostart
+# Configure autostart based on desktop environment
 echo "⚙️  Configuring Chromium autostart..."
-mkdir -p ~/.config/lxsession/LXDE-pi
 
-cat > ~/.config/lxsession/LXDE-pi/autostart << 'EOF'
+# Detect desktop environment
+if [ "$DESKTOP_SESSION" = "LXDE-pi-labwc" ]; then
+  echo "Detected new Raspberry Pi OS (Wayland/labwc)"
+  echo "⚠️  IMPORTANT: Kiosk mode setup for new Pi OS requires manual configuration"
+  echo "After installation completes, follow the instructions for Method B in DEPLOYMENT.md"
+  echo "Check with: echo \$DESKTOP_SESSION"
+elif [ "$DESKTOP_SESSION" = "LXDE-pi" ]; then
+  echo "Detected old Raspberry Pi OS (X11/LXDE)"
+  mkdir -p ~/.config/lxsession/LXDE-pi
+
+  cat > ~/.config/lxsession/LXDE-pi/autostart << 'EOF'
 @lxpanel --profile LXDE-pi
 @pcmanfm --desktop --profile LXDE-pi
 @xscreensaver -no-splash
@@ -116,6 +125,12 @@ cat > ~/.config/lxsession/LXDE-pi/autostart << 'EOF'
 # Start Chromium in kiosk mode
 @bash -c 'sleep 10 && chromium-browser --kiosk --app=http://localhost:3000 --start-fullscreen --disable-infobars --noerrdialogs --disable-session-crashed-bubble --disable-gpu'
 EOF
+  echo "✓ Kiosk mode configured for X11/LXDE"
+else
+  echo "⚠️  Unknown desktop environment: $DESKTOP_SESSION"
+  echo "Kiosk mode setup requires manual configuration"
+  echo "See DEPLOYMENT.md Part 5: Kiosk Mode"
+fi
 
 # Configure auto-login
 echo "⚙️  Configuring auto-login..."
@@ -133,7 +148,12 @@ echo "   - Configure scraper schedule (default: every 4 hours)"
 echo "   - Trigger initial scraper run"
 echo "2. Add your club logo: ~/lmrc-noticeboard/public/assets/logo.png"
 echo "3. Add sponsor logos: ~/lmrc-noticeboard/public/assets/sponsors/"
-echo "4. Reboot to start kiosk mode: sudo reboot"
+if [ "$DESKTOP_SESSION" = "LXDE-pi-labwc" ]; then
+  echo "4. ⚠️  Configure kiosk mode (REQUIRED for new Pi OS)"
+  echo "   Follow Method B in DEPLOYMENT.md Part 5: Kiosk Mode"
+  echo "   Your desktop: $DESKTOP_SESSION (Wayland/labwc)"
+fi
+echo "5. Reboot to start kiosk mode: sudo reboot"
 echo ""
 echo "After reboot, the noticeboard will automatically display!"
 echo ""

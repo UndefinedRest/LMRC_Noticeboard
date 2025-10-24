@@ -112,11 +112,15 @@ chmod +x install.sh
 
 ### Step 3: Configure Kiosk Mode (5 min)
 
-The install script creates the autostart file. To customize:
-
+**Check your desktop environment first:**
 ```bash
-nano ~/.config/lxsession/LXDE-pi/autostart
+echo $DESKTOP_SESSION
 ```
+
+- If **LXDE-pi-labwc** (new Pi OS) → Follow [Method B in Complete Guide](#method-b-for-new-raspberry-pi-os-lxde-pi-labwc-with-wayland)
+- If **LXDE-pi** (old Pi OS) → Follow [Method A in Complete Guide](#method-a-for-old-raspberry-pi-os-lxde-pi-with-x11)
+
+**Note:** The install script creates autostart for old Pi OS only. New Pi OS (Bookworm+) requires manual configuration.
 
 Enable auto-login:
 ```bash
@@ -662,29 +666,32 @@ tail -f ~/lmrc-noticeboard/scraper.log
 
 Make Chromium open fullscreen automatically on boot.
 
-#### Create Autostart Folder (1 minute)
+**IMPORTANT:** The setup differs based on your Raspberry Pi OS version. First, check which desktop environment you're using:
 
-```bash
-# Create autostart directory for your user
-mkdir -p ~/.config/lxsession/LXDE-pi
-```
-
-**Note:** If you're using a different desktop environment (not LXDE), the path may be different. Check with:
 ```bash
 echo $DESKTOP_SESSION
-# If it shows "LXDE-pi" → use ~/.config/lxsession/LXDE-pi
-# If it shows "wayfire" → use ~/.config/wayfire.ini (different setup)
 ```
+
+- **LXDE-pi** → Old Raspberry Pi OS (Bullseye or earlier) - Use Method A
+- **LXDE-pi-labwc** → New Raspberry Pi OS (Bookworm or later) - Use Method B
 
 ---
 
-#### Create Autostart File (5 minutes)
+#### Method A: For Old Raspberry Pi OS (LXDE-pi with X11)
+
+**Step 1: Create autostart directory**
+
+```bash
+mkdir -p ~/.config/lxsession/LXDE-pi
+```
+
+**Step 2: Create autostart file**
 
 ```bash
 nano ~/.config/lxsession/LXDE-pi/autostart
 ```
 
-**Paste this exactly:**
+**Paste this:**
 
 ```bash
 @lxpanel --profile LXDE-pi
@@ -700,23 +707,82 @@ nano ~/.config/lxsession/LXDE-pi/autostart
 @bash -c 'sleep 10 && chromium-browser --kiosk --app=http://localhost:3000 --start-fullscreen --disable-infobars --noerrdialogs --disable-session-crashed-bubble --disable-gpu'
 ```
 
-**Save and exit:**
-- Press `Ctrl+X`
-- Press `Y` to confirm
-- Press `Enter` to save
+**Save:** Ctrl+X, Y, Enter
 
-**Explanation of settings:**
-- `sleep 10` - Wait for server to start
-- `--kiosk` - Fullscreen mode, no browser UI
-- `--disable-infobars` - No "Chrome is being controlled" message
-- `--noerrdialogs` - No error popups
-- `--disable-session-crashed-bubble` - No crash notifications
+**Skip to "Enable Auto-Login" section below**
+
+---
+
+#### Method B: For New Raspberry Pi OS (LXDE-pi-labwc with Wayland)
+
+**Step 1: Remove old autostart (if it exists)**
+
+```bash
+rm -f ~/.config/lxsession/LXDE-pi/autostart
+```
+
+**Step 2: Create XDG autostart directory**
+
+```bash
+mkdir -p ~/.config/autostart
+```
+
+**Step 3: Create desktop entry for kiosk**
+
+```bash
+nano ~/.config/autostart/noticeboard-kiosk.desktop
+```
+
+**Paste this:**
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Noticeboard Kiosk
+Comment=Launch LMRC Noticeboard in kiosk mode
+Exec=sh -c 'sleep 15 && chromium-browser --kiosk --app=http://localhost:3000 --start-fullscreen --disable-infobars --noerrdialogs --disable-session-crashed-bubble'
+X-GNOME-Autostart-enabled=true
+```
+
+**Save:** Ctrl+X, Y, Enter
+
+**Step 4: Disable screen blanking for labwc**
+
+```bash
+mkdir -p ~/.config/labwc
+nano ~/.config/labwc/autostart
+```
+
+**Paste this:**
+
+```bash
+# Disable screen blanking
+wlr-randr --output HDMI-A-1 --off
+wlr-randr --output HDMI-A-1 --on
+
+# Keep screen awake (requires swayidle)
+swayidle -w timeout 0 '' &
+```
+
+**Save:** Ctrl+X, Y, Enter
+
+**Step 5: Install swayidle**
+
+```bash
+sudo apt-get install -y swayidle
+```
+
+**Why the difference?**
+- Newer Pi OS uses **Wayland** (labwc compositor) instead of X11
+- Wayland doesn't support `~/.config/lxsession/` autostart
+- Must use XDG autostart (`.desktop` files) instead
+- Screen blanking is controlled differently (wlr-randr instead of xset)
 
 ---
 
 #### Hide Mouse Cursor - Optional (2 minutes)
 
-The mouse cursor will be visible in kiosk mode. To hide it:
+**For X11 (Old Pi OS - Method A):**
 
 ```bash
 sudo apt install -y unclutter
@@ -728,25 +794,28 @@ nano ~/.config/lxsession/LXDE-pi/autostart
 @unclutter -idle 0.1 -root
 ```
 
+**For Wayland (New Pi OS - Method B):**
+
+Mouse cursor hiding on Wayland is more complex. Most users won't see the cursor in kiosk mode anyway. If needed:
+
+```bash
+# Install seat management tool
+sudo apt-get install -y seatd
+
+# Cursor will automatically hide when not moving in kiosk mode
+```
+
 ---
 
-#### Disable Screen Sleep (3 minutes)
-
-Prevent TV from going black.
-
-**Already done** in the autostart file above with:
-```bash
-@xset s off       # Disable screensaver
-@xset -dpms       # Disable power management
-@xset s noblank   # Prevent screen blanking
-```
+#### TV/Display Settings (2 minutes)
 
 **Also check TV settings:**
 - Disable "Auto Power Off"
 - Disable "Sleep Timer"
+- Disable "Eco Mode"
 - Set "HDMI CEC" to keep TV awake
 
-**For stubborn screens:**
+**For stubborn screens (both X11 and Wayland):**
 
 ```bash
 # Edit config.txt
@@ -759,6 +828,10 @@ hdmi_force_hotplug=1
 # Save and reboot
 sudo reboot
 ```
+
+**Note:** Screen blanking is already disabled in the autostart configurations above:
+- **Method A (X11):** Uses `xset` commands
+- **Method B (Wayland):** Uses `labwc/autostart` with `wlr-randr` and `swayidle`
 
 ---
 
@@ -889,19 +962,36 @@ ls -lh ~/lmrc-noticeboard/data/
 
 ---
 
-### Problem: Chromium doesn't start
+### Problem: Chromium doesn't start in kiosk mode after reboot
 
-**Check if autostart file exists:**
+**First, check which desktop environment you're using:**
+
+```bash
+echo $DESKTOP_SESSION
+```
+
+**For LXDE-pi (Old Pi OS with X11):**
+
+Check if autostart file exists:
 ```bash
 cat ~/.config/lxsession/LXDE-pi/autostart
 ```
 
-**If file doesn't exist, create it:**
+If missing, follow [Method A in Part 5](#method-a-for-old-raspberry-pi-os-lxde-pi-with-x11).
+
+**For LXDE-pi-labwc (New Pi OS with Wayland):**
+
+Check if desktop entry exists:
 ```bash
-mkdir -p ~/.config/lxsession/LXDE-pi
-nano ~/.config/lxsession/LXDE-pi/autostart
-# Paste the kiosk mode configuration from Part 5
+cat ~/.config/autostart/noticeboard-kiosk.desktop
 ```
+
+If missing, follow [Method B in Part 5](#method-b-for-new-raspberry-pi-os-lxde-pi-labwc-with-wayland).
+
+**Common issues:**
+- Server not running: `pm2 status` (should show "online")
+- Wrong desktop method used: Check `$DESKTOP_SESSION` and use correct method
+- Chromium path wrong: Try `which chromium-browser`
 
 **Test Chromium manually:**
 ```bash
@@ -909,6 +999,10 @@ chromium-browser --kiosk --app=http://localhost:3000
 # Should open fullscreen
 # Press Alt+F4 to close
 ```
+
+**If manual test works but autostart doesn't:**
+- Increase sleep time in autostart config (try 20 or 30 seconds)
+- Check PM2 is set to start on boot: `pm2 list`
 
 ---
 
