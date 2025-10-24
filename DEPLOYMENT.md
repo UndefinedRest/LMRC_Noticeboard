@@ -29,8 +29,8 @@
 ### Prerequisites
 
 ```bash
-# Install Node.js 20.x from https://nodejs.org/
-node --version  # Should be 20.x or higher
+# Install Node.js 20.x or later from https://nodejs.org/
+node --version  # Should be 20.x or higher (22.x recommended)
 ```
 
 ### Setup
@@ -95,7 +95,7 @@ Continue to [Express Setup](#express-setup-30-minutes) or [Complete Guide](#comp
 
 ```bash
 # Clone repository
-cd /home/pi
+cd ~
 git clone <your-repo-url> lmrc-noticeboard
 cd lmrc-noticeboard
 
@@ -115,7 +115,7 @@ chmod +x install.sh
 The install script creates the autostart file. To customize:
 
 ```bash
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
+nano ~/.config/lxsession/LXDE-pi/autostart
 ```
 
 Enable auto-login:
@@ -345,8 +345,8 @@ sudo mkdir -p /etc/apt/keyrings
 # Download NodeSource GPG key
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 
-# Add NodeSource repository for Node.js 20.x
-NODE_MAJOR=20
+# Add NodeSource repository for Node.js 20.x or 22.x
+NODE_MAJOR=22  # Use 22 for latest LTS, or 20 for older LTS
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
 
 # Install Node.js
@@ -355,13 +355,14 @@ sudo apt-get install -y nodejs
 
 # Verify installation
 node --version
-# Should show: v20.x.x
+# Should show: v20.x.x or v22.x.x
 
 npm --version
 # Should show: 10.x.x
 ```
 
 **Note:** This uses the official NodeSource repository method (the old `setup_X.x` scripts are deprecated).
+Node.js 22.x (current LTS) is recommended, but 20.x will also work fine.
 
 ---
 
@@ -412,7 +413,7 @@ pm2 --version
 **Option A: Clone from Git**
 
 ```bash
-cd /home/pi
+cd ~
 git clone <your-repo-url> lmrc-noticeboard
 cd lmrc-noticeboard
 ```
@@ -421,7 +422,7 @@ cd lmrc-noticeboard
 
 ```bash
 # Insert USB drive, then:
-cd /home/pi
+cd ~
 cp -r /media/pi/USB_NAME/lmrc-noticeboard .
 cd lmrc-noticeboard
 ```
@@ -438,7 +439,7 @@ scp -r lmrc-noticeboard pi@lmrc-noticeboard.local:/home/pi/
 #### Install Dependencies (10 minutes)
 
 ```bash
-cd /home/pi/lmrc-noticeboard
+cd ~/lmrc-noticeboard
 npm install
 
 # This will take 5-10 minutes
@@ -542,7 +543,7 @@ Server running on http://localhost:3000
 PM2 will keep the server running and restart it if it crashes.
 
 ```bash
-cd /home/pi/lmrc-noticeboard
+cd ~/lmrc-noticeboard
 
 # Start server with PM2
 pm2 start server.js --name lmrc-noticeboard
@@ -612,7 +613,7 @@ Now PM2 will auto-start your server on every reboot!
 curl http://localhost:3000/api/scraper/status
 
 # View scraper logs
-tail -f /home/pi/lmrc-noticeboard/scraper.log
+tail -f ~/lmrc-noticeboard/scraper.log
 ```
 
 ---
@@ -624,7 +625,15 @@ Make Chromium open fullscreen automatically on boot.
 #### Create Autostart Folder (1 minute)
 
 ```bash
-mkdir -p /home/pi/.config/lxsession/LXDE-pi
+# Create autostart directory for your user
+mkdir -p ~/.config/lxsession/LXDE-pi
+```
+
+**Note:** If you're using a different desktop environment (not LXDE), the path may be different. Check with:
+```bash
+echo $DESKTOP_SESSION
+# If it shows "LXDE-pi" → use ~/.config/lxsession/LXDE-pi
+# If it shows "wayfire" → use ~/.config/wayfire.ini (different setup)
 ```
 
 ---
@@ -632,7 +641,7 @@ mkdir -p /home/pi/.config/lxsession/LXDE-pi
 #### Create Autostart File (5 minutes)
 
 ```bash
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
+nano ~/.config/lxsession/LXDE-pi/autostart
 ```
 
 **Paste this exactly:**
@@ -673,7 +682,7 @@ The mouse cursor will be visible in kiosk mode. To hide it:
 sudo apt install -y unclutter
 
 # Edit autostart again
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
+nano ~/.config/lxsession/LXDE-pi/autostart
 
 # Add this line at the end:
 @unclutter -idle 0.1 -root
@@ -775,13 +784,13 @@ pm2 logs lmrc-noticeboard --lines 50
 
 **Check autostart:**
 ```bash
-cat /home/pi/.config/lxsession/LXDE-pi/autostart
+cat ~/.config/lxsession/LXDE-pi/autostart
 # Should have the Chromium kiosk command
 ```
 
 **Chromium taking too long to start:**
 ```bash
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
+nano ~/.config/lxsession/LXDE-pi/autostart
 ```
 Change `sleep 10` to `sleep 30`
 
@@ -833,7 +842,7 @@ ls -lh ~/lmrc-noticeboard/data/
 3. Install screen keeper:
    ```bash
    sudo apt install -y xdotool
-   nano /home/pi/.config/lxsession/LXDE-pi/autostart
+   nano ~/.config/lxsession/LXDE-pi/autostart
    # Add at end:
    @bash -c 'while true; do xdotool mousemove 0 0; sleep 300; done'
    ```
@@ -844,13 +853,13 @@ ls -lh ~/lmrc-noticeboard/data/
 
 **Check if autostart file exists:**
 ```bash
-cat /home/pi/.config/lxsession/LXDE-pi/autostart
+cat ~/.config/lxsession/LXDE-pi/autostart
 ```
 
 **If file doesn't exist, create it:**
 ```bash
-mkdir -p /home/pi/.config/lxsession/LXDE-pi
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
+mkdir -p ~/.config/lxsession/LXDE-pi
+nano ~/.config/lxsession/LXDE-pi/autostart
 # Paste the kiosk mode configuration from Part 5
 ```
 

@@ -26,7 +26,7 @@ sudo apt update
 sudo apt upgrade -y
 
 # Install Node.js
-echo "📦 Installing Node.js 20.x..."
+echo "📦 Installing Node.js 22.x (latest LTS)..."
 if ! command -v node &> /dev/null; then
   # Install prerequisites
   sudo apt-get install -y ca-certificates curl gnupg
@@ -38,7 +38,7 @@ if ! command -v node &> /dev/null; then
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 
   # Add NodeSource repository
-  NODE_MAJOR=20
+  NODE_MAJOR=22
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
 
   # Install Node.js
@@ -63,15 +63,15 @@ sudo npm install -g pm2
 
 # Create application directory
 echo "📁 Creating application directory..."
-mkdir -p /home/pi/lmrc-noticeboard
-cd /home/pi/lmrc-noticeboard
+mkdir -p ~/lmrc-noticeboard
+cd ~/lmrc-noticeboard
 
 # Check if files already exist
 if [ -f "package.json" ]; then
   echo "✓ Application files already present"
 else
   echo "⚠️  Application files not found in current directory"
-  echo "Please copy application files to /home/pi/lmrc-noticeboard/"
+  echo "Please copy application files to ~/lmrc-noticeboard/"
   echo "Then run: npm install"
   exit 1
 fi
@@ -97,9 +97,9 @@ pm2 save
 
 # Configure autostart
 echo "⚙️  Configuring Chromium autostart..."
-mkdir -p /home/pi/.config/lxsession/LXDE-pi
+mkdir -p ~/.config/lxsession/LXDE-pi
 
-cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
+cat > ~/.config/lxsession/LXDE-pi/autostart << 'EOF'
 @lxpanel --profile LXDE-pi
 @pcmanfm --desktop --profile LXDE-pi
 @xscreensaver -no-splash
@@ -127,8 +127,8 @@ echo "1. Configure via Web UI: http://localhost:3000/config"
 echo "   - Set club colors, timing, and branding"
 echo "   - Configure scraper schedule (default: every 4 hours)"
 echo "   - Trigger initial scraper run"
-echo "2. Add your club logo: /home/pi/lmrc-noticeboard/public/assets/logo.png"
-echo "3. Add sponsor logos: /home/pi/lmrc-noticeboard/public/assets/sponsors/"
+echo "2. Add your club logo: ~/lmrc-noticeboard/public/assets/logo.png"
+echo "3. Add sponsor logos: ~/lmrc-noticeboard/public/assets/sponsors/"
 echo "4. Reboot to start kiosk mode: sudo reboot"
 echo ""
 echo "After reboot, the noticeboard will automatically display!"
@@ -149,5 +149,5 @@ echo "  pm2 logs                - View logs"
 echo "  pm2 restart all         - Restart server"
 echo ""
 echo "To view scraper logs:"
-echo "  tail -f /home/pi/lmrc-noticeboard/scraper.log"
+echo "  tail -f ~/lmrc-noticeboard/scraper.log"
 echo ""
