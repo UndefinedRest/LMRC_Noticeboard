@@ -34,7 +34,7 @@
   "news": {
     "itemRotationSeconds": 45,
     "showFeaturedOnly": false,
-    "maxContentLength": 500
+    "maxContentLength": 1000
   },
   "weather": {
     "location": "Rathmines",

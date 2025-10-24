@@ -90,10 +90,9 @@ async function setup() {
           daysAhead: 90
         },
         news: {
-          maxItemsToDisplay: 7,
-          itemsPerBatch: 7,
-          showResults: true,
-          showAnnouncements: true
+          itemRotationSeconds: 45,
+          showFeaturedOnly: false,
+          maxContentLength: 1000
         },
         weather: {
           location: "Morisset",
