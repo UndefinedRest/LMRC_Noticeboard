@@ -317,28 +317,70 @@ class NoticeboardScraper {
           const $article = cheerio.load(articleHtml);
 
           // Try multiple selectors to find content
+          // Extract ALL content types: paragraphs, tables, lists, etc.
           const contentSelectors = [
             'article [class*="content"]',
             'article [class*="body"]',
             '[class*="article-content"]',
-            'article p',
-            '.content p',
-            'main p'
+            'article',
+            '.content',
+            'main'
           ];
 
           let bodyText = '';
 
           for (const selector of contentSelectors) {
-            const $elements = $article(selector);
-            if ($elements.length > 0) {
-              const texts = [];
-              $elements.each((j, elem) => {
-                const text = $article(elem).text().trim();
-                if (text.length > 20) texts.push(text);
-              });
-              bodyText = texts.join('\n\n');
+            const $container = $article(selector).first();
+            if ($container.length > 0) {
+              // Extract ALL text content including tables, paragraphs, lists, etc.
+              // Remove script and style tags
+              $container.find('script, style, nav, header, footer, [class*="share"], [class*="social"]').remove();
 
-              if (bodyText.length > 100) break;
+              // Get all text content
+              const texts = [];
+
+              // Extract from paragraphs
+              $container.find('p').each((j, elem) => {
+                const text = $article(elem).text().trim();
+                if (text.length > 0) texts.push(text);
+              });
+
+              // Extract from tables (important for race results!)
+              $container.find('table').each((j, elem) => {
+                const $table = $article(elem);
+                const rows = [];
+                $table.find('tr').each((i, row) => {
+                  const $row = $article(row);
+                  const cells = [];
+                  $row.find('th, td').each((k, cell) => {
+                    const cellText = $article(cell).text().trim();
+                    if (cellText.length > 0) cells.push(cellText);
+                  });
+                  if (cells.length > 0) rows.push(cells.join(' - '));
+                });
+                if (rows.length > 0) texts.push(rows.join('\n'));
+              });
+
+              // Extract from lists
+              $container.find('ul, ol').each((j, elem) => {
+                const $list = $article(elem);
+                const items = [];
+                $list.find('li').each((i, li) => {
+                  const itemText = $article(li).text().trim();
+                  if (itemText.length > 0) items.push(itemText);
+                });
+                if (items.length > 0) texts.push(items.join('\n'));
+              });
+
+              // If we didn't find structured content, just get all text
+              if (texts.length === 0) {
+                bodyText = $container.text().trim();
+              } else {
+                bodyText = texts.join('\n\n');
+              }
+
+              // Stop if we found substantial content
+              if (bodyText.length > 50) break;
             }
           }
 
