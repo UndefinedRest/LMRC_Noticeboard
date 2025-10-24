@@ -390,6 +390,11 @@ app.get('/api/health', async (req, res) => {
   const eventsAge = await getFileAge(path.join(DATA_DIR, 'events-data.json'));
   const newsAge = await getFileAge(path.join(DATA_DIR, 'news-data.json'));
 
+  // Read data files to get item counts
+  const galleryData = await readJSONFile(path.join(DATA_DIR, 'gallery-data.json'));
+  const eventsData = await readJSONFile(path.join(DATA_DIR, 'events-data.json'));
+  const newsData = await readJSONFile(path.join(DATA_DIR, 'news-data.json'));
+
   const status = {
     server: 'running',
     timestamp: new Date().toISOString(),
@@ -409,6 +414,18 @@ app.get('/api/health', async (req, res) => {
         ageMinutes: Math.round(newsAge),
         stale: newsAge > 120
       }
+    },
+    // Add data object for ConfigEditor compatibility
+    data: {
+      gallery: galleryData ? {
+        itemCount: galleryData.albums?.length || galleryData.totalAlbums || 0
+      } : null,
+      events: eventsData ? {
+        itemCount: eventsData.events?.length || eventsData.totalEvents || 0
+      } : null,
+      news: newsData ? {
+        itemCount: newsData.news?.length || newsData.totalArticles || 0
+      } : null
     }
   };
 
@@ -418,6 +435,9 @@ app.get('/api/health', async (req, res) => {
                     galleryAge < 240 && // Less than 4 hours old
                     eventsAge < 240 &&
                     newsAge < 240;
+
+  // Add status field for ConfigEditor
+  status.status = isHealthy ? 'healthy' : 'degraded';
 
   res.status(isHealthy ? 200 : 503).json(status);
 });

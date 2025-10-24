@@ -1,11 +1,13 @@
 /**
- * LMRC Noticeboard Content Scraper - COMPLETE VERSION
+ * LMRC Noticeboard Content Scraper - LIGHTWEIGHT VERSION
  * Scrapes gallery, events, news, and sponsors from RevSport platform
+ * Uses cheerio for fast HTML parsing (no browser required)
  */
 
 console.log('=== SCRAPER FILE LOADING ===');
 
-import puppeteer from 'puppeteer';
+import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -29,7 +31,6 @@ try {
 
 const BASE_URL = config.scraper?.baseUrl || 'https://www.lakemacquarierowingclub.org.au';
 const PATHS = config.scraper?.paths || {
-  login: '/login',
   gallery: '/gallery',
   events: '/events/list',
   news: '/news',
@@ -37,144 +38,128 @@ const PATHS = config.scraper?.paths || {
 };
 const DATA_DIR = path.join(__dirname, '../data');
 const MAX_RETRIES = config.scraper?.maxRetries || 3;
-const PAGE_TIMEOUT = (config.scraper?.timeoutSeconds || 30) * 1000;
+const TIMEOUT_MS = (config.scraper?.timeoutSeconds || 30) * 1000;
 
 class NoticeboardScraper {
   constructor() {
-    this.browser = null;
-    this.page = null;
+    // No browser needed!
   }
 
   async init() {
-    console.log('[NoticeboardScraper] Initializing browser...');
+    console.log('[NoticeboardScraper] Lightweight scraper initialized (no browser needed)');
+  }
 
-    this.browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    });
+  /**
+   * Fetch HTML from a URL with timeout
+   */
+  async fetchHTML(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    this.page = await this.browser.newPage();
-    await this.page.setViewport({ width: 1920, height: 1080 });
-    await this.page.setDefaultTimeout(PAGE_TIMEOUT);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
 
-    console.log('✓ Browser initialized');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.text();
+    } catch (err) {
+      clearTimeout(timeout);
+      throw err;
+    }
   }
 
   async scrapeGallery() {
     console.log('\n[Gallery] Scraping gallery...');
 
     try {
-      await this.page.goto(`${BASE_URL}${PATHS.gallery}`, { waitUntil: 'networkidle2' });
-      await this.page.waitForSelector('a[href*="/gallery/"]', { timeout: 10000 });
+      // Fetch gallery listing page
+      const html = await this.fetchHTML(`${BASE_URL}${PATHS.gallery}`);
+      const $ = cheerio.load(html);
 
-      const albums = await this.page.evaluate(() => {
-        const albumLinks = Array.from(document.querySelectorAll('a[href*="/gallery/"]'));
-        
-        return albumLinks
-          .map(link => {
-            const title = link.textContent.trim();
-            const url = link.href;
-            const albumId = url.split('/gallery/')[1]?.split('?')[0];
-            
-            if (!title || !albumId || title.length < 2) return null;
-            
-            return { title, url, albumId };
-          })
-          .filter(Boolean)
-          .filter((album, index, self) => 
-            index === self.findIndex(a => a.albumId === album.albumId)
-          );
+      // Extract album links
+      const albums = [];
+      $('a[href*="/gallery/"]').each((i, elem) => {
+        const $link = $(elem);
+        const title = $link.text().trim();
+        const url = $link.attr('href');
+
+        if (!url) return;
+
+        // Make URL absolute if needed
+        const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+        const albumId = url.split('/gallery/')[1]?.split('?')[0];
+
+        // Filter out invalid entries
+        if (!title || !albumId || title.length < 2) return;
+
+        // Check if this is a duplicate
+        if (albums.some(a => a.albumId === albumId)) return;
+
+        albums.push({ title, url: fullUrl, albumId });
       });
 
       console.log(`[Gallery] Found ${albums.length} albums`);
 
       const albumsWithPhotos = [];
-      
+
+      // Scrape each album (limit to first 10 albums)
       for (let i = 0; i < Math.min(albums.length, 10); i++) {
         const album = albums[i];
         console.log(`[Gallery] Scraping album ${i + 1}/${Math.min(albums.length, 10)}: ${album.title}`);
 
         try {
-          await this.page.goto(album.url, { waitUntil: 'networkidle2', timeout: 20000 });
-          
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          await this.page.evaluate(() => window.scrollTo(0, 0));
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const albumHtml = await this.fetchHTML(album.url);
+          const $album = cheerio.load(albumHtml);
 
-          const photos = await this.page.evaluate(() => {
-            let images = [];
-            
-            const galleryLinks = document.querySelectorAll('a.cs-gallery-item, a[class*="gallery-item"]');
-            
-            galleryLinks.forEach(link => {
-              const href = link.href;
-              if (href && href.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
-                const span = link.querySelector('span[style*="background-image"]');
-                let thumbUrl = href;
-                
-                if (span) {
-                  const style = span.getAttribute('style');
-                  const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
-                  if (match) thumbUrl = match[1];
-                }
-                
-                images.push({
-                  url: href,
-                  thumbnail: thumbUrl,
-                  alt: link.getAttribute('data-sub-html') || '',
-                  source: 'cs-gallery-item'
-                });
+          const photos = [];
+
+          // Extract gallery items
+          $album('a.cs-gallery-item, a[class*="gallery-item"]').each((j, elem) => {
+            const $link = $album(elem);
+            const href = $link.attr('href');
+
+            // Check if this is an image
+            if (href && href.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+              const $span = $link.find('span[style*="background-image"]');
+              let thumbUrl = href;
+
+              // Extract thumbnail from background-image style
+              if ($span.length) {
+                const style = $span.attr('style');
+                const match = style?.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
+                if (match) thumbUrl = match[1];
               }
-            });
-            
-            if (images.length === 0) {
-              const gallery = document.querySelector('.cs-gallery, [class*="cs-gallery"]');
-              if (gallery) {
-                const links = gallery.querySelectorAll('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"]');
-                
-                links.forEach(link => {
-                  const span = link.querySelector('span[style*="background-image"]');
-                  if (span) {
-                    const style = span.getAttribute('style');
-                    const match = style.match(/background-image:\s*url\(['"]?([^'"]+)['"]?\)/);
-                    if (match) {
-                      images.push({
-                        url: link.href,
-                        thumbnail: match[1],
-                        alt: '',
-                        source: 'cs-gallery-fallback'
-                      });
-                    }
-                  }
-                });
-              }
+
+              photos.push({
+                url: href,
+                thumbnail: thumbUrl,
+                alt: $link.attr('data-sub-html') || '',
+                source: 'cs-gallery-item'
+              });
             }
-            
-            const seen = new Set();
-            const unique = images.filter(img => {
-              if (seen.has(img.url)) return false;
-              seen.add(img.url);
-              return true;
-            });
-            
-            return unique.slice(0, 30);
           });
-          
-          if (photos.length > 0) {
+
+          // Remove duplicates
+          const uniquePhotos = [];
+          const seen = new Set();
+          photos.forEach(photo => {
+            if (!seen.has(photo.url)) {
+              seen.add(photo.url);
+              uniquePhotos.push(photo);
+            }
+          });
+
+          if (uniquePhotos.length > 0) {
             albumsWithPhotos.push({
               ...album,
-              photos,
-              photoCount: photos.length,
+              photos: uniquePhotos,
+              photoCount: uniquePhotos.length,
               scrapedAt: new Date().toISOString()
             });
-            console.log(`  ✓ Found ${photos.length} photos`);
+            console.log(`  ✓ Found ${uniquePhotos.length} photos`);
           } else {
             console.log(`  ⚠ No photos found`);
           }
@@ -200,68 +185,61 @@ class NoticeboardScraper {
     console.log('\n[Events] Scraping events...');
 
     try {
-      await this.page.goto(`${BASE_URL}${PATHS.events}`, { waitUntil: 'networkidle2' });
+      const html = await this.fetchHTML(`${BASE_URL}${PATHS.events}`);
+      const $ = cheerio.load(html);
 
-      // Wait for event cards to load
-      await this.page.waitForSelector('.card.card-hover', { timeout: 10000 });
+      const events = [];
 
-      // Wait a bit for any dynamic content
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      $('.card.card-hover').each((i, elem) => {
+        const $card = $(elem);
 
-      const events = await this.page.evaluate(() => {
-        const eventCards = document.querySelectorAll('.card.card-hover');
-        const results = [];
+        // Get the title link
+        const $titleLink = $card.find('a[href*="/events/"]').first();
+        if (!$titleLink.length) return;
 
-        eventCards.forEach((card) => {
-          // Get the title link
-          const titleLink = card.querySelector('a[href*="/events/"]');
-          if (!titleLink) return;
+        const title = $titleLink.text().trim();
+        const url = $titleLink.attr('href');
 
-          const title = titleLink.textContent.trim();
-          const url = titleLink.href;
+        // Get all text content of the card
+        const cardText = $card.text();
 
-          // Get all the text content of the card
-          const cardText = card.textContent;
+        // Extract date/time - format like "Sat 26 Oct 2025 08:00 — 17:00"
+        const dateMatch = cardText.match(/([A-Z][a-z]{2}\s+\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4}\s+\d{1,2}:\d{2}(?:\s*—\s*(?:[A-Z][a-z]{2}\s+)?\d{1,2}(?:\s+[A-Z][a-z]{2,8}\s+\d{4})?\s+\d{1,2}:\d{2})?)/);
+        const dateText = dateMatch ? dateMatch[1] : '';
 
-          // Extract date/time - format like "Sat 26 Oct 2025 08:00 — 17:00"
-          const dateMatch = cardText.match(/([A-Z][a-z]{2}\s+\d{1,2}\s+[A-Z][a-z]{2,8}\s+\d{4}\s+\d{1,2}:\d{2}(?:\s*—\s*(?:[A-Z][a-z]{2}\s+)?\d{1,2}(?:\s+[A-Z][a-z]{2,8}\s+\d{4})?\s+\d{1,2}:\d{2})?)/);
-          const dateText = dateMatch ? dateMatch[1] : '';
+        // Extract location - appears after date
+        const lines = cardText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        let location = '';
 
-          // Extract location - usually appears after the date
-          const lines = cardText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-          let location = '';
-
-          // Find the line after the title and date
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            // Skip title and date lines
-            if (line === title || line.includes(dateText) || line === 'Details') continue;
-            // This should be the location
-            if (line.length > 0 && line.length < 100) {
-              location = line;
-              break;
-            }
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          // Skip title and date lines
+          if (line === title || line.includes(dateText) || line === 'Details') continue;
+          // This should be the location
+          if (line.length > 0 && line.length < 100) {
+            location = line;
+            break;
           }
+        }
 
-          // Only add valid events (skip navigation items)
-          if (title && title.length > 5 &&
-              !title.includes('Download') &&
-              !title.includes('Past') &&
-              !title.includes('Calendar') &&
-              url.match(/\/events\/\d+/)) {
+        // Only add valid events (skip navigation items)
+        if (title && title.length > 5 &&
+            !title.includes('Download') &&
+            !title.includes('Past') &&
+            !title.includes('Calendar') &&
+            url && url.match(/\/events\/\d+/)) {
 
-            results.push({
-              title,
-              date: dateText,
-              location,
-              url,
-              eventId: url.split('/events/')[1],
-              type: 'event'
-            });
-          }
-        });
+          const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
 
-        return results;
+          events.push({
+            title,
+            date: dateText,
+            location,
+            url: fullUrl,
+            eventId: url.split('/events/')[1],
+            type: 'event'
+          });
+        }
       });
 
       console.log(`[Events] Found ${events.length} events`);
@@ -282,97 +260,96 @@ class NoticeboardScraper {
     console.log('\n[News] Scraping news...');
 
     try {
-      await this.page.goto(`${BASE_URL}${PATHS.news}`, { waitUntil: 'networkidle2' });
-      await this.page.waitForSelector('a[href*="/news/"]', { timeout: 10000 });
+      const html = await this.fetchHTML(`${BASE_URL}${PATHS.news}`);
+      const $ = cheerio.load(html);
 
-      const newsLinks = await this.page.evaluate(() => {
-        const articleCards = Array.from(document.querySelectorAll('[class*="card"], [class*="article"], [class*="post"]'));
-        
-        return articleCards
-          .map(card => {
-            const link = card.querySelector('a[href*="/news/"]');
-            if (!link) return null;
-            
-            const title = link.textContent.trim() || 
-                         card.querySelector('h1, h2, h3, h4, h5')?.textContent.trim() || '';
-            const url = link.href;
-            const articleId = url.split('/news/')[1]?.split('?')[0];
-            
-            const isFeatured = card.textContent.includes('Featured') ||
-                              card.querySelector('[class*="featured"]') !== null;
-            
-            const dateEl = card.querySelector('[class*="date"], time, .text-muted');
-            const date = dateEl?.textContent.trim() || dateEl?.getAttribute('datetime') || '';
+      const newsLinks = [];
 
-            const excerptEl = card.querySelector('p, [class*="excerpt"], [class*="description"]');
-            const excerpt = excerptEl?.textContent.trim() || '';
+      $('[class*="card"], [class*="article"], [class*="post"]').each((i, elem) => {
+        const $card = $(elem);
+        const $link = $card.find('a[href*="/news/"]').first();
 
-            if (!title || !articleId || title.length < 3) return null;
+        if (!$link.length) return;
 
-            return {
-              title,
-              url,
-              articleId,
-              date,
-              excerpt,
-              isFeatured,
-              type: title.toLowerCase().includes('result') ? 'result' : 'news'
-            };
-          })
-          .filter(Boolean)
-          .filter((item, index, self) => 
-            index === self.findIndex(n => n.articleId === item.articleId)
-          );
+        const title = $link.text().trim() ||
+                     $card.find('h1, h2, h3, h4, h5').first().text().trim() || '';
+        const url = $link.attr('href');
+        const articleId = url?.split('/news/')[1]?.split('?')[0];
+
+        const isFeatured = $card.text().includes('Featured') ||
+                          $card.find('[class*="featured"]').length > 0;
+
+        const $dateEl = $card.find('[class*="date"], time, .text-muted').first();
+        const date = $dateEl.text().trim() || $dateEl.attr('datetime') || '';
+
+        const $excerptEl = $card.find('p, [class*="excerpt"], [class*="description"]').first();
+        const excerpt = $excerptEl.text().trim() || '';
+
+        if (!title || !articleId || title.length < 3) return;
+
+        // Check for duplicates
+        if (newsLinks.some(n => n.articleId === articleId)) return;
+
+        const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+
+        newsLinks.push({
+          title,
+          url: fullUrl,
+          articleId,
+          date,
+          excerpt,
+          isFeatured,
+          type: title.toLowerCase().includes('result') ? 'result' : 'news'
+        });
       });
 
       console.log(`[News] Found ${newsLinks.length} articles`);
 
       const newsWithContent = [];
-      
+
+      // Fetch full content for first 20 articles
       for (let i = 0; i < Math.min(newsLinks.length, 20); i++) {
         const newsItem = newsLinks[i];
         console.log(`[News] Fetching ${i + 1}/${Math.min(newsLinks.length, 20)}: ${newsItem.title.substring(0, 40)}...`);
-        
+
         try {
-          await this.page.goto(newsItem.url, { waitUntil: 'networkidle2', timeout: 15000 });
-          
-          const fullContent = await this.page.evaluate(() => {
-            const contentSelectors = [
-              'article [class*="content"]',
-              'article [class*="body"]',
-              '[class*="article-content"]',
-              'article p',
-              '.content p',
-              'main p'
-            ];
-            
-            let bodyText = '';
-            
-            for (const selector of contentSelectors) {
-              const elements = document.querySelectorAll(selector);
-              if (elements.length > 0) {
-                bodyText = Array.from(elements)
-                  .map(el => el.textContent.trim())
-                  .filter(text => text.length > 20)
-                  .join('\n\n');
-                
-                if (bodyText.length > 100) break;
-              }
+          const articleHtml = await this.fetchHTML(newsItem.url);
+          const $article = cheerio.load(articleHtml);
+
+          // Try multiple selectors to find content
+          const contentSelectors = [
+            'article [class*="content"]',
+            'article [class*="body"]',
+            '[class*="article-content"]',
+            'article p',
+            '.content p',
+            'main p'
+          ];
+
+          let bodyText = '';
+
+          for (const selector of contentSelectors) {
+            const $elements = $article(selector);
+            if ($elements.length > 0) {
+              const texts = [];
+              $elements.each((j, elem) => {
+                const text = $article(elem).text().trim();
+                if (text.length > 20) texts.push(text);
+              });
+              bodyText = texts.join('\n\n');
+
+              if (bodyText.length > 100) break;
             }
-            
-            return bodyText || 'Content not available';
-          });
-          
+          }
+
           newsWithContent.push({
             ...newsItem,
-            content: fullContent,
-            contentLength: fullContent.length
+            content: bodyText || 'Content not available',
+            contentLength: bodyText.length
           });
-          
-          console.log(`  ✓ ${fullContent.length} chars`);
-          
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
+
+          console.log(`  ✓ ${bodyText.length} chars`);
+
         } catch (err) {
           console.error(`  ✗ Error: ${err.message}`);
           newsWithContent.push({
@@ -401,140 +378,67 @@ class NoticeboardScraper {
     console.log('\n[Sponsors] Scraping sponsors...');
 
     try {
-      await this.page.goto(`${BASE_URL}${PATHS.sponsors}`, { waitUntil: 'networkidle2' });
+      const html = await this.fetchHTML(`${BASE_URL}${PATHS.sponsors}`);
+      const $ = cheerio.load(html);
 
-      // Wait for sponsor images to load (try multiple selectors)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const sponsorLogos = [];
+      const seen = new Set();
 
-      // Scroll to bottom to trigger lazy loading
-      await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Strategy 1: Look for sponsor links
+      $('a[href*="/sponsor/"]').each((i, elem) => {
+        const $link = $(elem);
+        const $img = $link.find('img').first();
 
-      // Try to wait for sponsor images to appear
-      try {
-        await this.page.waitForSelector('img[src*="cdn.revolutionise.com/sponsors"]', { timeout: 10000 });
-        console.log('[Sponsors] Sponsor images found in DOM');
-      } catch (err) {
-        console.log('[Sponsors] Warning: Sponsor selector not found, continuing anyway...');
-      }
+        if ($img.length) {
+          const src = $img.attr('src') ||
+                     $img.attr('data-src') ||
+                     $img.attr('data-lazy-src') ||
+                     $img.attr('srcset')?.split(' ')[0];
+          const alt = $img.attr('alt') || $link.attr('title') || '';
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const sponsors = await this.page.evaluate(() => {
-        let sponsorLogos = [];
-
-        // Strategy 1: Look for sponsors in carousel items
-        const carouselItems = document.querySelectorAll('.tns-item a[href*="/sponsor/"]');
-
-        carouselItems.forEach(link => {
-          const img = link.querySelector('img');
-          if (img) {
-            const src = img.src || img.getAttribute('data-src');
-            const alt = img.alt || link.getAttribute('title') || '';
-
-            if (src && src.includes('cdn.revolutionise.com/sponsors')) {
-              sponsorLogos.push({
-                name: alt || 'Sponsor',
-                logoUrl: src,
-                url: link.href,
-                source: 'tns-carousel'
-              });
-            }
-          }
-        });
-
-        // Strategy 2: Look for sponsor links (with <a> tags)
-        const sponsorLinks = document.querySelectorAll('a[href*="/sponsor/"]');
-
-        sponsorLinks.forEach(link => {
-          const img = link.querySelector('img');
-          if (img) {
-            // Try multiple ways to get the image URL
-            const src = img.src ||
-                       img.getAttribute('data-src') ||
-                       img.getAttribute('data-lazy-src') ||
-                       img.getAttribute('srcset')?.split(' ')[0];
-            const alt = img.alt || link.getAttribute('title') || '';
-
-            // Accept any sponsor image, not just ones from CDN
-            if (src && src.length > 0) {
-              sponsorLogos.push({
-                name: alt || 'Sponsor',
-                logoUrl: src,
-                url: link.href,
-                source: 'sponsor-link'
-              });
-            }
-          }
-        });
-
-        // Strategy 3: Look for standalone sponsor images (without links)
-        // Try multiple selector patterns for sponsor images
-        const sponsorImageSelectors = [
-          'img[src*="cdn.revolutionise.com/sponsors"]',
-          'img[data-src*="cdn.revolutionise.com/sponsors"]',
-          'img[alt*="Sponsor"]',
-          'div[class*="sponsor"] img',
-          'div[class*="carousel"] img[src*="revolutionise"]'
-        ];
-
-        let sponsorImages = [];
-        for (const selector of sponsorImageSelectors) {
-          const imgs = document.querySelectorAll(selector);
-          sponsorImages.push(...Array.from(imgs));
-        }
-
-        // Remove duplicates
-        sponsorImages = [...new Set(sponsorImages)];
-
-        sponsorImages.forEach(img => {
-          // Check if this image is already captured by a link
-          const parentLink = img.closest('a[href*="/sponsor/"]');
-          if (parentLink) return; // Skip if already captured
-
-          const src = img.src ||
-                     img.getAttribute('data-src') ||
-                     img.getAttribute('data-lazy-src') ||
-                     img.getAttribute('srcset')?.split(' ')[0];
-          const alt = img.alt || '';
-
-          // Only add if it's specifically a sponsor image (not gallery images)
-          // Use multiple checks to ensure we catch the sponsor image
-          const isSponsorImage = src && (
-            src.includes('/sponsors/') ||
-            src.includes('revolutionise.com/sponsors') ||
-            src.toLowerCase().includes('cdn.revolutionise.com.au/sponsors')
-          );
-
-          if (isSponsorImage) {
+          if (src && src.length > 0 && !seen.has(src)) {
+            seen.add(src);
             sponsorLogos.push({
               name: alt || 'Sponsor',
               logoUrl: src,
-              url: '', // No link available for standalone images
-              source: 'standalone-image'
+              url: $link.attr('href'),
+              source: 'sponsor-link'
             });
           }
-        });
-
-        // Remove duplicates based on logoUrl
-        const seen = new Set();
-        return sponsorLogos.filter(s => {
-          if (seen.has(s.logoUrl)) return false;
-          seen.add(s.logoUrl);
-          return true;
-        });
+        }
       });
 
-      console.log(`[Sponsors] Found ${sponsors.length} unique sponsors`);
+      // Strategy 2: Look for standalone sponsor images
+      $('img[src*="sponsors"], img[alt*="Sponsor"]').each((i, elem) => {
+        const $img = $(elem);
 
-      const finalSponsors = sponsors;
+        // Skip if already captured by a link
+        if ($img.closest('a[href*="/sponsor/"]').length) return;
 
-      if (finalSponsors.length > 0) {
-        console.log(`[Sponsors] Sample:`, finalSponsors.slice(0, 3).map(s => s.name));
+        const src = $img.attr('src') ||
+                   $img.attr('data-src') ||
+                   $img.attr('data-lazy-src');
+        const alt = $img.attr('alt') || '';
+
+        if (src && !seen.has(src)) {
+          seen.add(src);
+          sponsorLogos.push({
+            name: alt || 'Sponsor',
+            logoUrl: src,
+            url: '',
+            source: 'standalone-image'
+          });
+        }
+      });
+
+      console.log(`[Sponsors] Found ${sponsorLogos.length} unique sponsors`);
+
+      if (sponsorLogos.length > 0) {
+        console.log(`[Sponsors] Sample:`, sponsorLogos.slice(0, 3).map(s => s.name));
       }
 
       return {
-        sponsors: finalSponsors,
+        sponsors: sponsorLogos,
         scrapedAt: new Date().toISOString()
       };
 
@@ -546,9 +450,10 @@ class NoticeboardScraper {
 
   async saveData(filename, data) {
     const filepath = path.join(DATA_DIR, filename);
-    
+
     await fs.mkdir(DATA_DIR, { recursive: true });
 
+    // Create backup of existing file
     try {
       const existingData = await fs.readFile(filepath, 'utf8');
       const backupPath = `${filepath}.backup`;
@@ -563,8 +468,10 @@ class NoticeboardScraper {
 
   async scrapeAll() {
     console.log('═══════════════════════════════════════════════');
-    console.log('  LMRC NOTICEBOARD SCRAPER');
+    console.log('  LMRC NOTICEBOARD SCRAPER (Lightweight)');
     console.log('═══════════════════════════════════════════════\n');
+
+    const startTime = Date.now();
 
     try {
       await this.init();
@@ -579,19 +486,23 @@ class NoticeboardScraper {
       await this.saveData('news-data.json', newsData);
       await this.saveData('sponsors-data.json', sponsorsData);
 
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
       console.log('\n═══════════════════════════════════════════════');
       console.log('  SCRAPING SUMMARY');
       console.log('═══════════════════════════════════════════════');
       console.log(`Gallery albums: ${galleryData.albums?.length || 0}`);
       console.log(`Total photos: ${galleryData.albums?.reduce((sum, a) => sum + a.photoCount, 0) || 0}`);
-      console.log(`Events: ${eventsData.events?.length || 0} (from WordPress)`);
+      console.log(`Events: ${eventsData.events?.length || 0}`);
       console.log(`News items: ${newsData.news?.length || 0}`);
       console.log(`Sponsors: ${sponsorsData.sponsors?.length || 0}`);
+      console.log(`Duration: ${duration}s`);
       console.log(`Completed: ${new Date().toLocaleString()}`);
       console.log('═══════════════════════════════════════════════\n');
 
       return {
         success: true,
+        duration,
         gallery: galleryData,
         events: eventsData,
         news: newsData,
@@ -601,16 +512,12 @@ class NoticeboardScraper {
     } catch (err) {
       console.error('\n❌ SCRAPING FAILED:', err.message);
       throw err;
-    } finally {
-      await this.cleanup();
     }
   }
 
   async cleanup() {
-    if (this.browser) {
-      await this.browser.close();
-      console.log('[Cleanup] Browser closed');
-    }
+    // No browser to clean up!
+    console.log('[Cleanup] No cleanup needed (no browser)');
   }
 }
 
@@ -620,18 +527,18 @@ async function runWithRetry(retries = MAX_RETRIES) {
       console.log(`\nAttempt ${attempt}/${retries}`);
       const scraper = new NoticeboardScraper();
       const result = await scraper.scrapeAll();
-      
+
       console.log('✓ Scraping completed successfully!\n');
       return result;
 
     } catch (err) {
       console.error(`Attempt ${attempt} failed:`, err.message);
-      
+
       if (attempt === retries) {
         console.error('❌ All retry attempts exhausted');
         process.exit(1);
       }
-      
+
       console.log(`Waiting 10 seconds before retry...`);
       await new Promise(resolve => setTimeout(resolve, 10000));
     }

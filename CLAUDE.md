@@ -6,18 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 LMRC Digital Noticeboard is a self-updating digital signage application for Lake Macquarie Rowing Club. It displays rotating content from the club's RevSport website including photo galleries, events, news, and sponsors on a TV in the boatshed.
 
-**Tech Stack**: Node.js + Express backend, React 18 frontend, Puppeteer for web scraping, Vite for building
+**Tech Stack**: Node.js + Express backend, React 18 frontend, Cheerio for web scraping, Vite for building
 
 ## Architecture
 
 The application has a **3-layer architecture** running on a single device (Raspberry Pi/NUC):
 
 1. **Scraper Layer** (`scraper/noticeboard-scraper.js`)
-   - Puppeteer-based headless browser
-   - Authenticates with RevSport using credentials from `.env`
+   - Lightweight HTML parser using Cheerio (no browser needed)
+   - Fetches public RevSport pages via HTTP (no authentication required)
    - Scrapes gallery albums, events, news articles, and sponsors
+   - Captures ALL photos from each album (no artificial limits)
    - Saves data to local JSON files in `data/` directory
    - Runs hourly via cron job (production) or manually via `npm run scrape`
+   - Fast: ~4s total execution time, ~50MB memory footprint
 
 2. **API Server Layer** (`server.js`)
    - Express server serving both the built React app and API endpoints
@@ -33,7 +35,7 @@ The application has a **3-layer architecture** running on a single device (Raspb
    - Automatic content rotation based on `config.json` timing settings
    - Runs in Chromium kiosk mode (fullscreen) in production
 
-**Data Flow**: RevSport → Puppeteer Scraper → JSON files → Express API → React Frontend → Chromium Display
+**Data Flow**: RevSport → Cheerio Scraper → JSON files → Express API → React Frontend → Chromium Display
 
 **Why this architecture?**
 - Avoids CORS issues (server-side scraping, same-origin API)
@@ -115,14 +117,19 @@ A web interface is available for managing configuration settings without manuall
 
 ## Scraper Details
 
-The scraper (`scraper/noticeboard-scraper.js`) uses Puppeteer to scrape public pages:
+The scraper (`scraper/noticeboard-scraper.js`) uses Cheerio for lightweight HTML parsing:
 
-1. `/gallery` → album list → individual album pages for photos
+1. `/gallery` → album list → individual album pages for photos (captures ALL photos, no limits)
 2. `/events/list` → upcoming events
 3. `/news` → announcements and results
 4. `/home` → sponsor information
 
-**No authentication required** - all RevSport public pages are accessible without login.
+**Key Features**:
+- **No browser needed** - Simple HTTP fetch + HTML parsing with Cheerio
+- **No authentication required** - All RevSport public pages are accessible
+- **Fast & efficient** - ~4 seconds total, ~50MB memory (vs 10-15s, 400-500MB with Puppeteer)
+- **Server-side rendered content** - RevSport uses WordPress/PHP, all data is in initial HTML
+- **No lazy loading** - All gallery images present in HTML (no JavaScript required)
 
 ### Portability for Other RevSport Clubs
 
@@ -165,9 +172,10 @@ All scraper URLs are **configurable** via `config.json`:
 
 **Important Selectors**:
 - Gallery albums: `a[href*="/gallery/"]`
-- Album photos: `img[data-gallery-image]` or `.gallery-item img`
-- Events: `.event-item` or table rows
-- News: `.news-article` or similar
+- Album photos: `a.cs-gallery-item` with `span[style*="background-image"]` for thumbnails
+- Events: `.card.card-hover` with nested `a[href*="/events/"]`
+- News: `[class*="card"]` with `a[href*="/news/"]`
+- Sponsors: `a[href*="/sponsor/"]` or `img[src*="sponsors"]`
 
 ## Frontend Structure
 
