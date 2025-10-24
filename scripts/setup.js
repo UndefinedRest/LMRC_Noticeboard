@@ -25,40 +25,9 @@ console.log('══════════════════════�
 
 async function setup() {
   try {
-    // Check if .env exists
-    const envPath = path.join(__dirname, '../.env');
     const configPath = path.join(__dirname, '../config.json');
-    
-    console.log('Step 1: Checking environment files...\n');
-    
-    // Setup .env
-    if (!existsSync(envPath)) {
-      console.log('.env file not found. Let\'s create it.\n');
-      
-      const username = await question('RevSport Username: ');
-      const password = await question('RevSport Password: ');
-      const port = await question('Server Port (default 3000): ') || '3000';
-      
-      const envContent = `# RevSport Authentication
-REVSPORT_USERNAME=${username}
-REVSPORT_PASSWORD=${password}
 
-# Server Configuration
-PORT=${port}
-NODE_ENV=production
-
-# Optional: Logging
-LOG_LEVEL=info
-`;
-      
-      await fs.writeFile(envPath, envContent);
-      console.log('\n✓ .env file created\n');
-    } else {
-      console.log('✓ .env file already exists\n');
-    }
-    
-    // Setup config.json
-    console.log('Step 2: Checking configuration...\n');
+    console.log('Step 1: Checking configuration...\n');
     
     if (!existsSync(configPath)) {
       console.log('config.json not found. Creating default configuration.\n');
@@ -138,7 +107,16 @@ LOG_LEVEL=info
           message: "Check our website for the latest updates"
         },
         scraper: {
-          scheduleHourly: true,
+          baseUrl: "https://www.lakemacquarierowingclub.org.au",
+          paths: {
+            gallery: "/gallery",
+            events: "/events/list",
+            news: "/news",
+            sponsors: "/home"
+          },
+          scheduleEnabled: true,
+          schedule: "0 */4 * * *",
+          runOnStartup: true,
           maxRetries: 3,
           timeoutSeconds: 30
         },
@@ -157,7 +135,7 @@ LOG_LEVEL=info
     }
     
     // Create directories
-    console.log('Step 3: Creating directories...\n');
+    console.log('Step 2: Creating directories...\n');
     
     const dirs = [
       path.join(__dirname, '../data'),
@@ -174,12 +152,12 @@ LOG_LEVEL=info
     console.log('\n');
     
     // Test scraper
-    console.log('Step 4: Testing scraper...\n');
+    console.log('Step 3: Testing scraper...\n');
     const testScraper = await question('Run test scrape now? (y/n): ');
-    
+
     if (testScraper.toLowerCase() === 'y') {
-      console.log('\nRunning test scrape... (this may take a few minutes)\n');
-      
+      console.log('\nRunning test scrape... (this may take a few seconds)\n');
+
       try {
         const { default: NoticeboardScraper } = await import('../scraper/noticeboard-scraper.js');
         const scraper = new NoticeboardScraper();
@@ -187,7 +165,7 @@ LOG_LEVEL=info
         console.log('\n✓ Test scrape completed successfully!\n');
       } catch (err) {
         console.error('\n✗ Test scrape failed:', err.message);
-        console.log('\nPlease check your RevSport credentials in .env\n');
+        console.log('\nPlease check your internet connection and RevSport website availability\n');
       }
     }
     
@@ -197,13 +175,21 @@ LOG_LEVEL=info
     console.log('═══════════════════════════════════════════════\n');
     
     console.log('Next steps:\n');
-    console.log('1. Add your club logo to: public/assets/logo.png');
-    console.log('2. Add sponsor logos to: public/assets/sponsors/');
-    console.log('3. Update config.json with your club colors and details');
-    console.log('4. Build the React app: npm run build');
-    console.log('5. Start the server: npm start');
-    console.log('6. Open browser: http://localhost:3000\n');
-    
+    console.log('1. Build the React app: npm run build');
+    console.log('2. Start the server: npm start');
+    console.log('3. Open browser: http://localhost:3000');
+    console.log('4. Configure via Web UI: http://localhost:3000/config\n');
+
+    console.log('Web Configuration Interface:');
+    console.log('  - Set club colors, timing, and branding');
+    console.log('  - Configure scraper schedule (default: every 4 hours)');
+    console.log('  - Manage sponsors and social media settings');
+    console.log('  - Trigger scraper runs manually\n');
+
+    console.log('Assets:');
+    console.log('  - Add your club logo to: public/assets/logo.png');
+    console.log('  - Add sponsor logos to: public/assets/sponsors/\n');
+
     console.log('For deployment on Raspberry Pi, see DEPLOYMENT.md\n');
     
   } catch (err) {

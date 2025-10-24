@@ -1,458 +1,287 @@
-# 🚀 LMRC Noticeboard - Quick Start Guide
+# LMRC Noticeboard - Quick Reference Card
 
-Get your noticeboard up and running in 30 minutes!
-
----
-
-## 📋 What You Need
-
-### Hardware
-- ✅ Raspberry Pi 5 (8GB) or similar computer
-- ✅ 50" TV with HDMI
-- ✅ MicroSD card (64GB, high-endurance)
-- ✅ Keyboard + mouse (for setup only)
-- ✅ Internet connection (WiFi or Ethernet)
-
-### Software & Credentials
-- ✅ RevSport username and password
-- ✅ Club logo (PNG format)
-- ✅ Sponsor logos (optional)
+**For complete deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
 
 ---
 
-## ⚡ 5-Minute Test Setup (Development)
+## Getting Started
 
-Test on your laptop before deploying to Pi:
-
-### 1. Install Prerequisites
-
-```bash
-# Install Node.js 20.x from https://nodejs.org/
-node --version  # Should be 20.x or higher
-```
-
-### 2. Get the Code
-
-```bash
-# Extract the zip or clone from git
-cd lmrc-noticeboard
-```
-
-### 3. Install Dependencies
-
-```bash
-npm install
-# This takes 5-10 minutes (downloads Chromium for Puppeteer)
-```
-
-### 4. Configure
-
-```bash
-# Run setup wizard
-npm run setup
-
-# It will ask for:
-# - RevSport username (e.g., gevans11)
-# - RevSport password
-# - Club name
-# - Social media handles
-```
-
-### 5. Test Scraper
-
-```bash
-# Run a test scrape
-npm run scrape
-
-# Check if data was collected
-ls -lh data/
-# You should see: gallery-data.json, events-data.json, news-data.json
-```
-
-### 6. Build & Run
-
-```bash
-# Build the React app
-npm run build
-
-# Start the server
-npm start
-
-# Open browser: http://localhost:3000
-```
-
-🎉 **If you see the noticeboard, you're ready to deploy to Raspberry Pi!**
+**Choose your path:**
+- 🚀 Test locally → See [DEPLOYMENT.md#quick-test-5-minutes](DEPLOYMENT.md#quick-test-5-minutes)
+- ⚡ Fast Pi setup → See [DEPLOYMENT.md#express-setup-30-minutes](DEPLOYMENT.md#express-setup-30-minutes)
+- 📖 Detailed guide → See [DEPLOYMENT.md#complete-guide-2-3-hours](DEPLOYMENT.md#complete-guide-2-3-hours)
 
 ---
 
-## 🥧 Raspberry Pi Deployment (30 Minutes)
+## Essential Commands
 
-### Step 1: Prepare Raspberry Pi (10 min)
-
-1. **Flash SD Card**
-   - Download Raspberry Pi Imager: https://www.raspberrypi.com/software/
-   - Flash "Raspberry Pi OS Lite (64-bit)"
-   - Enable SSH (create empty `ssh` file in boot partition)
-   - Insert SD card and power on Pi
-
-2. **Connect to Pi**
-   ```bash
-   # Find Pi IP address from your router, or use:
-   ssh pi@raspberrypi.local
-   # Default password: raspberry
-   ```
-
-3. **Update System**
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   passwd  # Change default password
-   ```
-
-### Step 2: Install Software (10 min)
-
+### Local Development
 ```bash
-# Use the automated install script
-cd /home/pi
-git clone <your-repo-url> lmrc-noticeboard
-cd lmrc-noticeboard
-chmod +x install.sh
-./install.sh
-
-# Follow the prompts - it will:
-# - Install Node.js, Chromium, PM2
-# - Run setup wizard
-# - Build the app
-# - Configure autostart
+npm install              # Install dependencies
+npm run scrape           # Test scraper
+npm run build            # Build React app
+npm start                # Start server
+npm run dev              # Dev mode (server + React)
 ```
 
-**OR** manually follow these commands:
-
+### Production (Raspberry Pi)
 ```bash
-# Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs chromium-browser git
+# Server Management
+pm2 status                          # Check server status
+pm2 restart lmrc-noticeboard        # Restart server
+pm2 logs lmrc-noticeboard           # View logs
+pm2 save                            # Save PM2 process list
 
-# Install PM2
-sudo npm install -g pm2
+# Scraper
+npm run scrape                      # Manual scrape
+curl http://localhost:3000/api/scraper/status          # Check scheduler
+curl -X POST http://localhost:3000/api/scraper/trigger  # Trigger scrape
 
-# Copy application files
-# (If you didn't clone from git, copy via SCP)
-
-# Install dependencies
-cd /home/pi/lmrc-noticeboard
-npm install
-
-# Setup
-npm run setup
-npm run build
-
-# Start server with PM2
-pm2 start server.js --name lmrc-noticeboard
-pm2 startup  # Run the command it prints
-pm2 save
-```
-
-### Step 3: Configure Kiosk Mode (5 min)
-
-```bash
-# Setup autostart
-mkdir -p /home/pi/.config/lxsession/LXDE-pi
-nano /home/pi/.config/lxsession/LXDE-pi/autostart
-```
-
-Paste this:
-
-```bash
-@lxpanel --profile LXDE-pi
-@pcmanfm --desktop --profile LXDE-pi
-@xscreensaver -no-splash
-@xset s off
-@xset -dpms
-@xset s noblank
-@bash -c 'sleep 10 && chromium-browser --kiosk --app=http://localhost:3000 --start-fullscreen --disable-infobars --noerrdialogs --disable-session-crashed-bubble'
-```
-
-Save (Ctrl+X, Y, Enter).
-
-```bash
-# Enable auto-login
-sudo raspi-config
-# System Options → Boot / Auto Login → Desktop Autologin
-# Finish and reboot
-sudo reboot
-```
-
-### Step 4: Setup Automated Scraping (2 min)
-
-```bash
-# Add hourly cron job
-crontab -e
-
-# Add this line:
-5 * * * * cd /home/pi/lmrc-noticeboard && /usr/bin/node scraper/noticeboard-scraper.js >> /home/pi/lmrc-noticeboard/scraper.log 2>&1
-
-# Save and exit
-```
-
-### Step 5: Add Assets (3 min)
-
-```bash
-# From your computer, copy assets via SCP:
-scp logo.png pi@raspberrypi.local:/home/pi/lmrc-noticeboard/public/assets/
-scp sponsor1.png pi@raspberrypi.local:/home/pi/lmrc-noticeboard/public/assets/sponsors/
-scp sponsor2.png pi@raspberrypi.local:/home/pi/lmrc-noticeboard/public/assets/sponsors/
-
-# Update config.json with sponsor details
-ssh pi@raspberrypi.local
-nano /home/pi/lmrc-noticeboard/config.json
+# System
+sudo reboot                         # Restart Pi
+df -h                              # Check disk space
+vcgencmd measure_temp              # Check temperature
 ```
 
 ---
 
-## ✅ Verification Checklist
+## Web Interfaces
 
-After reboot, verify everything works:
+```
+http://localhost:3000                    # Main noticeboard display
+http://localhost:3000/config             # Configuration editor
+http://localhost:3000/api/health         # Server health check
+http://localhost:3000/api/scraper/status # Scraper status
+```
 
-- [ ] TV displays noticeboard in fullscreen
-- [ ] Header shows club logo, date/time, weather
-- [ ] Left panel shows upcoming events
-- [ ] Center rotates through photos/news
-- [ ] Right panel shows news items
-- [ ] Footer shows sponsors and social media
-- [ ] Content updates hourly
+**On network:**
+Replace `localhost` with `lmrc-noticeboard.local` or Pi's IP address.
 
-### Quick Tests
+---
 
-```bash
-# SSH into Pi
-ssh pi@raspberrypi.local
+## File Locations
 
-# Check server is running
-pm2 status
-# Should show: lmrc-noticeboard | online
-
-# Check data files exist and are recent
-ls -lh /home/pi/lmrc-noticeboard/data/
-# Should show files modified within last hour
-
-# Check API is working
-curl http://localhost:3000/api/health
-# Should return: {"server":"running",...}
-
-# Check scraper log
-tail -20 /home/pi/lmrc-noticeboard/scraper.log
-# Should show successful scrapes
-
-# Check cron is configured
-crontab -l
-# Should show hourly scraper job
+```
+lmrc-noticeboard/
+├── config.json              # All settings (edit via web UI)
+├── server.js                # Express server
+├── server-scheduler.js      # Built-in scraper scheduler
+├── data/                    # Scraped data (auto-generated)
+│   ├── gallery-data.json
+│   ├── events-data.json
+│   ├── news-data.json
+│   └── sponsors-data.json
+├── public/                  # Built React app
+│   └── assets/              # Logo and images
+│       ├── logo.png         # Club logo
+│       └── sponsors/        # Sponsor logos
+├── src/                     # React source
+│   ├── Noticeboard.jsx      # Main component
+│   └── ConfigEditor.jsx     # Config UI
+├── scraper/                 # Scraper
+│   └── noticeboard-scraper.js
+└── scraper.log              # Scraper logs
 ```
 
 ---
 
-## 🎨 Customization Checklist
+## Configuration
 
-After initial setup, customize these:
+**Use Web UI (Recommended):**
+1. Open `http://localhost:3000/config`
+2. Make changes in the form
+3. Click "Save Changes"
+4. Changes apply in 60 seconds (no restart needed)
 
-### Required Customizations
+**Common Settings:**
+- **Timing:** `config.timing` - Rotation speeds, refresh intervals
+- **Branding:** `config.branding` - Colors, logo, club name
+- **Scraper:** `config.scraper` - Schedule, enable/disable
+- **Sponsors:** `config.sponsors` - Sponsor array
+- **Weather:** `config.weather.bomStationId` - BOM station ID
 
-- [ ] Add club logo (`public/assets/logo.png`)
-- [ ] Update club colors in `config.json`
-- [ ] Set correct BOM weather station ID
-- [ ] Add Facebook/Instagram handles
-- [ ] Add sponsor logos and names
+---
 
-### Optional Customizations
+## Scraper Scheduler
 
-- [ ] Adjust rotation timing (default: 15s/45s/30s)
-- [ ] Change max events displayed (default: 7)
-- [ ] Change max news items (default: 7)
-- [ ] Add fallback images for when no content available
-- [ ] Customize club tagline
+**Default Settings:**
+- Enabled: ✅
+- Schedule: Every 4 hours (`0 */4 * * *`)
+- Runs on startup: ✅
 
-### Configuration File Locations
+**Common Schedules:**
+```
+0 * * * *      # Every hour
+0 */2 * * *    # Every 2 hours
+0 */4 * * *    # Every 4 hours (default)
+0 */6 * * *    # Every 6 hours
+0 6 * * *      # Once daily at 6am
+```
 
+**Configure via Web UI:**
+`http://localhost:3000/config` → Scraper Controls section
+
+---
+
+## Troubleshooting
+
+### Server won't start
 ```bash
-/home/pi/lmrc-noticeboard/config.json    # Main config
-/home/pi/lmrc-noticeboard/.env           # Credentials
-/home/pi/lmrc-noticeboard/public/assets/ # Club assets
+pm2 status                    # Check if running
+pm2 logs --lines 50           # Check errors
+sudo lsof -i :3000            # Check if port in use
+```
+
+### No data showing
+```bash
+npm run scrape                # Run manually
+ls -lh data/                  # Check files exist
+tail -50 scraper.log          # Check for errors
+```
+
+### Noticeboard doesn't auto-start
+```bash
+pm2 startup                   # Re-enable PM2 startup
+pm2 save                      # Save process list
+cat ~/.config/lxsession/LXDE-pi/autostart  # Check kiosk config
+```
+
+### Screen goes black
+```bash
+# Check TV settings (disable auto-power-off, sleep timer)
+# Check autostart file has xset commands
+nano ~/.config/lxsession/LXDE-pi/autostart
+```
+
+**For complete troubleshooting, see [DEPLOYMENT.md#troubleshooting](DEPLOYMENT.md#troubleshooting)**
+
+---
+
+## Architecture Quick Reference
+
+**3-Layer System:**
+1. **Scraper** → Cheerio HTML parser → Scrapes RevSport → Saves JSON files
+2. **Server** → Express API → Serves JSON + built React app
+3. **Frontend** → React SPA → Polls API → Displays content
+
+**Data Flow:**
+```
+RevSport Website
+    ↓ (Cheerio scraper, ~4s)
+JSON files (data/)
+    ↓ (Express API)
+React Frontend
+    ↓ (Chromium kiosk mode)
+TV Display
+```
+
+**No credentials needed** - RevSport pages are public.
+
+---
+
+## Quick Customization
+
+### Add Club Logo
+```bash
+# Copy logo.png to:
+public/assets/logo.png
+
+# Update in config:
+http://localhost:3000/config → Branding → Club Logo Path
+```
+
+### Add Sponsor
+```bash
+# 1. Copy sponsor logo
+public/assets/sponsors/sponsor-name.png
+
+# 2. Add to config via web UI:
+http://localhost:3000/config → Sponsors → Add Sponsor
+```
+
+### Change Colors
+```bash
+# Via web UI:
+http://localhost:3000/config → Branding → Club Colors
+# Pick colors using color picker
+```
+
+### Adjust Rotation Speed
+```bash
+# Via web UI:
+http://localhost:3000/config → Timing
+# Change heroRotationSeconds, newsPanelRotationSeconds, etc.
 ```
 
 ---
 
-## 🔧 Common Adjustments
+## API Endpoints
 
-### Change Rotation Speed
-
-```bash
-nano /home/pi/lmrc-noticeboard/config.json
+### Public Endpoints
+```
+GET  /api/health            # Server health
+GET  /api/gallery           # Gallery data
+GET  /api/events            # Events data
+GET  /api/news              # News data
+GET  /api/config            # Public config
 ```
 
-Find `timing` section:
-```json
-"timing": {
-  "heroRotationSeconds": 20,         // Change from 15
-  "newsPanelRotationSeconds": 60,    // Change from 45
-  "sponsorRotationSeconds": 45       // Change from 30
-}
+### Configuration Endpoints
+```
+GET  /api/config/full       # Complete configuration
+POST /api/config/update     # Update configuration
+POST /api/config/reset      # Restore from backup
 ```
 
-**Changes apply automatically within 60 seconds!**
-
-### Add/Update Sponsors
-
-```bash
-# 1. Copy logo to Pi
-scp new-sponsor.png pi@raspberrypi.local:/home/pi/lmrc-noticeboard/public/assets/sponsors/
-
-# 2. Edit config
-ssh pi@raspberrypi.local
-nano /home/pi/lmrc-noticeboard/config.json
+### Scraper Endpoints
 ```
-
-Add to `sponsors` array:
-```json
-"sponsors": [
-  {
-    "name": "New Sponsor",
-    "logoPath": "/assets/sponsors/new-sponsor.png",
-    "url": "https://newsponsor.com"
-  }
-]
-```
-
-### Update RevSport Credentials
-
-```bash
-ssh pi@raspberrypi.local
-nano /home/pi/lmrc-noticeboard/.env
-```
-
-Update credentials, save, then:
-```bash
-npm run scrape  # Test new credentials
+GET  /api/scraper/status    # Scheduler status
+POST /api/scraper/trigger   # Manual scrape trigger
+POST /api/scraper/schedule  # Update schedule
 ```
 
 ---
 
-## 🆘 Troubleshooting
+## Key Features
 
-### Problem: Blank Screen
-
-**Solution:**
-```bash
-ssh pi@raspberrypi.local
-pm2 status
-pm2 restart lmrc-noticeboard
-sudo reboot
-```
-
-### Problem: Old Data Showing
-
-**Solution:**
-```bash
-ssh pi@raspberrypi.local
-npm run scrape  # Manual scrape
-tail -f scraper.log  # Watch for errors
-```
-
-### Problem: No Photos
-
-**Solution:**
-Check gallery settings in `config.json`:
-```json
-"gallery": {
-  "publicOnly": false,  // Try changing to false
-  "maxAlbumsToDisplay": 10
-}
-```
-
-### Problem: Wrong Weather
-
-**Solution:**
-Update BOM station ID in `config.json`:
-```json
-"weather": {
-  "location": "Morisset",
-  "bomStationId": "061055"  // Find your station at bom.gov.au
-}
-```
-
-### Get More Help
-
-1. Check logs: `pm2 logs lmrc-noticeboard`
-2. Check scraper: `tail -100 scraper.log`
-3. Test API: `curl http://localhost:3000/api/health`
-4. See full troubleshooting: [DEPLOYMENT.md](./DEPLOYMENT.md)
+✅ **No credentials required** - Scrapes public RevSport pages
+✅ **Built-in scheduler** - No cron setup needed
+✅ **Web-based config** - Edit settings via browser
+✅ **Fast & lightweight** - Cheerio parser (~4s, ~50MB)
+✅ **Auto-updates** - Polls for new data every 60s
+✅ **Portable** - Works with any RevSport club website
+✅ **Offline capable** - Displays last known data if scraper fails
 
 ---
 
-## 📱 Remote Management
+## Links
 
-### Access Pi Remotely
-
-```bash
-# Enable VNC (optional)
-sudo raspi-config
-# Interface Options → VNC → Enable
-
-# Install VNC Viewer on your computer
-# Connect to: raspberrypi.local
-```
-
-### View Logs Remotely
-
-```bash
-ssh pi@raspberrypi.local
-pm2 logs lmrc-noticeboard --lines 50
-tail -f scraper.log
-```
-
-### Update Config Remotely
-
-```bash
-# Edit directly via SSH
-ssh pi@raspberrypi.local
-nano /home/pi/lmrc-noticeboard/config.json
-
-# Or edit locally and copy
-scp config.json pi@raspberrypi.local:/home/pi/lmrc-noticeboard/
-```
+- **[README.md](README.md)** - Project overview and features
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
+- **[CLAUDE.md](CLAUDE.md)** - Architecture and development guide
+- **[config.json](config.json)** - All configuration options
 
 ---
 
-## 🎯 Success Criteria
+## Support
 
-Your noticeboard is working properly when:
+**Common Issues:**
+- See [DEPLOYMENT.md#troubleshooting](DEPLOYMENT.md#troubleshooting)
 
-✅ Displays automatically on boot  
-✅ Shows current date/time and weather  
-✅ Rotates through club photos  
-✅ Lists upcoming events  
-✅ Shows recent news and results  
-✅ Displays sponsor logos  
-✅ Updates content hourly  
-✅ Runs 24/7 without intervention  
+**For Advanced Topics:**
+- Architecture details → [CLAUDE.md](CLAUDE.md)
+- Making code changes → [CLAUDE.md](CLAUDE.md)
+- Adding new features → [CLAUDE.md](CLAUDE.md)
 
----
-
-## 📚 Next Steps
-
-- ✅ Test for 24 hours to ensure stability
-- ✅ Train committee members on basic config changes
-- ✅ Setup email alerts for failures (see DEPLOYMENT.md)
-- ✅ Schedule monthly maintenance checks
-- ✅ Consider purchasing spare Pi as backup
+**Installation Help:**
+- Quick test (5 min) → [DEPLOYMENT.md#quick-test-5-minutes](DEPLOYMENT.md#quick-test-5-minutes)
+- Express setup (30 min) → [DEPLOYMENT.md#express-setup-30-minutes](DEPLOYMENT.md#express-setup-30-minutes)
+- Complete guide (2-3 hrs) → [DEPLOYMENT.md#complete-guide-2-3-hours](DEPLOYMENT.md#complete-guide-2-3-hours)
 
 ---
 
-## 🎉 You're Done!
-
-Your noticeboard should now be running smoothly. 
-
-For detailed documentation, see:
-- **[README.md](./README.md)** - Overview and features
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
-- **config.json** - All configuration options
-
-**Enjoy your new digital noticeboard!** 🚣‍♂️
+**TL;DR:**
+1. `npm install && npm run build && npm start` → Test locally
+2. See [DEPLOYMENT.md](DEPLOYMENT.md) for Raspberry Pi setup
+3. Configure via `http://localhost:3000/config`
+4. Done! 🚣‍♂️

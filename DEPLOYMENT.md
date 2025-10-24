@@ -1,55 +1,197 @@
-# LMRC Digital Noticeboard - Raspberry Pi Deployment Guide
+# LMRC Digital Noticeboard - Deployment Guide
 
-**Complete step-by-step guide for first-time Raspberry Pi users**
-
-This guide walks you through deploying the LMRC Digital Noticeboard on a Raspberry Pi, from unboxing to having it running 24/7 on your TV. No prior Linux or Raspberry Pi experience required!
+**Choose your path:**
+- 🚀 **Developer Testing** → [Quick Test (5 minutes)](#quick-test-5-minutes) - Test on your laptop first
+- ⚡ **Experienced Users** → [Express Setup (30 minutes)](#express-setup-30-minutes) - Fast Pi deployment with install script
+- 📖 **First-time Pi Users** → [Complete Guide](#complete-guide-2-3-hours) - Detailed step-by-step instructions
 
 ---
 
 ## Table of Contents
 
-1. [What You'll Need](#what-youll-need)
-2. [Part 1: Setting Up Raspberry Pi](#part-1-setting-up-raspberry-pi)
-3. [Part 2: Installing Software](#part-2-installing-software)
-4. [Part 3: Installing the Noticeboard](#part-3-installing-the-noticeboard)
-5. [Part 4: Automatic Startup](#part-4-automatic-startup)
-6. [Part 5: Kiosk Mode](#part-5-kiosk-mode)
-7. [Troubleshooting](#troubleshooting)
-8. [Maintenance](#maintenance)
-9. [Quick Reference](#quick-reference)
+**Getting Started**
+1. [Quick Test (5 minutes)](#quick-test-5-minutes) - Test on laptop
+2. [Express Setup (30 minutes)](#express-setup-30-minutes) - Fast Pi deployment
+3. [Complete Guide (2-3 hours)](#complete-guide-2-3-hours) - Detailed Pi deployment
+
+**Reference**
+- [Troubleshooting](#troubleshooting)
+- [Maintenance](#maintenance)
+- [Quick Reference](#quick-reference)
+- [Installation Checklist](#installation-checklist)
 
 ---
 
-## What You'll Need
+## Quick Test (5 minutes)
 
-### Hardware Shopping List
+**Test the noticeboard on your laptop before deploying to Raspberry Pi**
+
+### Prerequisites
+
+```bash
+# Install Node.js 20.x from https://nodejs.org/
+node --version  # Should be 20.x or higher
+```
+
+### Setup
+
+```bash
+# 1. Get the code
+cd lmrc-noticeboard
+
+# 2. Install dependencies (2-5 minutes)
+npm install
+
+# 3. Test scraper
+npm run scrape
+
+# Check if data was collected
+ls -lh data/
+# You should see: gallery-data.json, events-data.json, news-data.json, sponsors-data.json
+
+# 4. Build & run
+npm run build
+npm start
+
+# 5. Open browser
+# http://localhost:3000
+```
+
+**✅ If you see the noticeboard, you're ready to deploy to Raspberry Pi!**
+
+Continue to [Express Setup](#express-setup-30-minutes) or [Complete Guide](#complete-guide-2-3-hours).
+
+---
+
+## Express Setup (30 minutes)
+
+**Fast deployment for users comfortable with Raspberry Pi and Linux**
+
+### What You Need
+
+**Hardware:**
+- Raspberry Pi 5 (8GB) or Pi 4 (4GB minimum)
+- 64GB microSD card (high-endurance)
+- 50" TV with HDMI
+- Keyboard + mouse (setup only)
+- Internet connection
+
+### Step 1: Prepare Raspberry Pi (10 min)
+
+1. **Flash SD Card** with Raspberry Pi Imager
+   - OS: "Raspberry Pi OS (64-bit)" with desktop
+   - Hostname: `lmrc-noticeboard`
+   - Enable SSH
+   - Set username/password
+   - Configure WiFi (if needed)
+
+2. **Boot and Update**
+   ```bash
+   ssh pi@lmrc-noticeboard.local
+   sudo apt update && sudo apt upgrade -y
+   ```
+
+### Step 2: Install Software (10 min)
+
+```bash
+# Clone repository
+cd /home/pi
+git clone <your-repo-url> lmrc-noticeboard
+cd lmrc-noticeboard
+
+# Run automated install script
+chmod +x install.sh
+./install.sh
+
+# Follow prompts - it will:
+# - Install Node.js, Chromium, PM2
+# - Build the app
+# - Configure autostart
+# - Start the server with PM2
+```
+
+### Step 3: Configure Kiosk Mode (5 min)
+
+The install script creates the autostart file. To customize:
+
+```bash
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+```
+
+Enable auto-login:
+```bash
+sudo raspi-config
+# System Options → Boot / Auto Login → Desktop Autologin
+```
+
+### Step 4: Configure Automated Scraping (2 min)
+
+**The scraper has a built-in scheduler - no cron setup needed!**
+
+Configure via Web UI:
+1. Open browser: `http://lmrc-noticeboard.local:3000/config`
+2. Scroll to **"Scraper Controls"** section
+3. Set schedule (default: every 4 hours)
+4. Click "Run Scraper Now" to test
+
+### Step 5: Add Assets (3 min)
+
+```bash
+# From your computer, copy assets via SCP:
+scp logo.png pi@lmrc-noticeboard.local:/home/pi/lmrc-noticeboard/public/assets/
+scp sponsor*.png pi@lmrc-noticeboard.local:/home/pi/lmrc-noticeboard/public/assets/sponsors/
+```
+
+Update config via web UI: `http://lmrc-noticeboard.local:3000/config`
+
+### Final Step: Reboot
+
+```bash
+sudo reboot
+```
+
+**✅ Done!** The noticeboard will appear automatically on your TV.
+
+---
+
+## Complete Guide (2-3 hours)
+
+**Detailed step-by-step guide for first-time Raspberry Pi users**
+
+No prior Linux or Raspberry Pi experience required!
+
+### What You'll Need
+
+#### Hardware Shopping List
 
 1. **Raspberry Pi** - Choose one:
-   - Raspberry Pi 5 (8GB) - Recommended, best performance
-   - Raspberry Pi 4 (4GB minimum) - Good alternative
+   - Raspberry Pi 5 (8GB) - **Recommended**, best performance (~$120 AUD)
+   - Raspberry Pi 4 (4GB minimum) - Good alternative (~$90 AUD)
 
 2. **MicroSD Card**
-   - 32GB minimum (64GB recommended)
+   - 32GB minimum (64GB recommended) (~$15-25 AUD)
    - Class 10 or UHS-I speed rating
+   - High-endurance cards recommended for 24/7 operation
    - Brands: SanDisk, Samsung, Kingston
 
 3. **Power Supply**
-   - Official Raspberry Pi power supply
+   - Official Raspberry Pi power supply (~$15 AUD)
    - Pi 4: 5V 3A USB-C
    - Pi 5: 5V 5A USB-C
-   - DON'T use phone chargers!
+   - **DON'T use phone chargers!** (causes instability)
 
 4. **HDMI Cable**
-   - **Micro HDMI to HDMI** cable for Pi 4/5
+   - **Micro HDMI to HDMI** cable for Pi 4/5 (~$10 AUD)
    - Regular HDMI cable won't fit!
 
 5. **TV/Display**
    - Any TV with HDMI input
+   - 50" recommended for visibility
 
 6. **Temporary (for setup only)**
    - USB keyboard
    - USB mouse
-   - MicroSD card reader
+   - MicroSD card reader (for your computer)
 
 7. **Network Connection** - Choose one:
    - Ethernet cable (recommended - more reliable)
@@ -57,13 +199,17 @@ This guide walks you through deploying the LMRC Digital Noticeboard on a Raspber
 
 **Estimated Total Cost:** $200-300 AUD
 
+Optional but recommended:
+- Case with cooling fan (~$15 AUD)
+- Heatsinks (if not using case with fan)
+
 ---
 
-## Part 1: Setting Up Raspberry Pi
+### Part 1: Setting Up Raspberry Pi
 
-### Step 1: Install Operating System (20 minutes)
+#### Step 1: Install Operating System (20 minutes)
 
-#### On Your Windows/Mac Computer:
+**On Your Windows/Mac Computer:**
 
 1. **Download Raspberry Pi Imager**
    - Visit: https://www.raspberrypi.com/software/
@@ -84,243 +230,271 @@ This guide walks you through deploying the LMRC Digital Noticeboard on a Raspber
    - Click "CHOOSE OS"
    - Select **"Raspberry Pi OS (64-bit)"**
    - This is the first option with the full desktop
+   - **NOT** the "Lite" version!
 
 6. **Choose Storage**
    - Click "CHOOSE STORAGE"
    - Select your microSD card
-   - Everything on the card will be erased!
+   - **WARNING:** Everything on the card will be erased!
 
-7. **Configure Settings** (IMPORTANT)
-   - Click the gear icon � (bottom right)
+7. **Configure Settings** (IMPORTANT!)
+   - Click the gear icon ⚙️ (bottom right)
    - OR click "NEXT" and it will prompt you
 
    **Fill in these settings:**
 
    **General Tab:**
-   -  Set hostname: `lmrc-noticeboard`
-   -  Set username and password:
-     - Username: `pi`
-     - Password: [choose something secure - write it down!]
-   -  Configure wireless LAN (if using WiFi):
-     - SSID: [your WiFi network name]
-     - Password: [your WiFi password]
-     - Country: `AU`
-   -  Set locale settings:
-     - Time zone: `Australia/Sydney`
-     - Keyboard layout: `us`
+   - ✅ Set hostname: `lmrc-noticeboard`
+   - ✅ Set username and password
+     - Username: `pi` (recommended)
+     - Password: Choose a secure password (write it down!)
+   - ✅ Configure wireless LAN (if using WiFi)
+     - WiFi name (SSID)
+     - WiFi password
+     - Country: AU
+   - ✅ Set locale settings
+     - Timezone: Australia/Sydney (or your timezone)
+     - Keyboard layout: us (or your layout)
 
    **Services Tab:**
-   -  Enable SSH
+   - ✅ Enable SSH
    - Select "Use password authentication"
 
-   Click **"SAVE"**
+8. **Write to SD Card**
+   - Click "SAVE"
+   - Click "YES" to apply settings
+   - Click "YES" to confirm erase
+   - Wait 5-10 minutes
+   - Click "CONTINUE" when done
 
-8. **Write to Card**
-   - Click "NEXT"
-   - Click "YES" to confirm
-   - Wait 5-15 minutes (grab a coffee!)
-   - When done: "Write Successful"
-   - Safely eject the card
-
-### Step 2: First Boot (5 minutes)
-
-1. **Insert the microSD card** into Raspberry Pi
-   - Card slot is on the bottom/side
-   - Push gently until it clicks
-
-2. **Connect Everything** (in this order):
-   - HDMI cable from Pi to TV
-   - USB keyboard to Pi
-   - USB mouse to Pi
-   - Ethernet cable (if using wired network)
-   - **Power cable LAST** to Pi
-
-3. **Power On**
-   - Turn on TV and select HDMI input
-   - Pi will boot automatically when powered
-   - You'll see raspberry logo and scrolling text
-   - First boot takes 1-2 minutes
-   - Desktop will appear!
-
-4. **Welcome Wizard** (if it appears)
-   - Click through any setup wizard
-   - Most settings already configured
-   - Click "Skip" on update check (we'll do manually)
-   - Reboot if asked
-
-### Step 3: Update System (20 minutes)
-
-1. **Open Terminal**
-   - Click the black terminal icon at top of screen (looks like >_)
-   - A black window opens - this is where you type commands
-
-2. **Update Package List**
-   ```bash
-   sudo apt update
-   ```
-   - Type this exactly and press Enter
-   - You'll see text scrolling - this is normal!
-   - Wait for it to return to the prompt
-
-3. **Upgrade All Software**
-   ```bash
-   sudo apt upgrade -y
-   ```
-   - This takes 10-30 minutes
-   - You'll see progress bars
-   - Goes through "Reading package lists", "Unpacking", "Setting up"
-   - Done when you see the prompt again
-
-4. **Find Your IP Address**
-   ```bash
-   hostname -I
-   ```
-   - **Write this number down!** (e.g., `192.168.1.100`)
-   - You'll need it later for remote access
+9. **Insert SD Card in Pi**
+   - Remove card from computer
+   - Insert into Pi (card slot on bottom)
 
 ---
 
-## Part 2: Installing Software
+#### Step 2: First Boot (5 minutes)
 
-Stay in the Terminal window for all these steps.
+1. **Connect Everything**
+   - HDMI cable: Pi → TV
+   - Keyboard + Mouse: USB ports on Pi
+   - Ethernet cable (if not using WiFi)
+   - **Last:** Power supply → Pi
 
-### Install Node.js (5 minutes)
+2. **Power On**
+   - Pi will boot automatically when powered
+   - Red LED = power
+   - Green LED = activity
 
-Node.js runs the noticeboard application.
+3. **Watch the Screen**
+   - You'll see lots of text scrolling (normal!)
+   - Desktop will appear after 1-2 minutes
+   - Should auto-login to desktop
+
+4. **Check Connection**
+   - Look for WiFi/Ethernet icon in top-right
+   - Should show connected
+
+**Note Your IP Address:**
+```bash
+# Open Terminal (black icon in top toolbar)
+hostname -I
+# Write down the first number (e.g., 192.168.1.100)
+```
+
+---
+
+#### Step 3: Update System (20 minutes)
+
+**Important:** Always update before installing software.
 
 ```bash
-# Download Node.js setup script
+# In the Terminal:
+sudo apt update
+sudo apt upgrade -y
+
+# This will take 10-20 minutes on first boot
+# You'll see a progress bar
+
+# If prompted about configuration files, choose "keep current version"
+```
+
+When finished:
+```bash
+# Reboot to apply updates
+sudo reboot
+```
+
+Pi will restart. Wait for desktop to appear again.
+
+---
+
+### Part 2: Installing Software
+
+#### Install Node.js (5 minutes)
+
+```bash
+# Open Terminal
+
+# Download Node.js 20.x installer
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 
 # Install Node.js
 sudo apt install -y nodejs
 
-# Verify it worked
+# Verify installation
 node --version
+# Should show: v20.x.x
+
+npm --version
+# Should show: 10.x.x
 ```
 
-You should see: `v20.something.something`
+---
 
-If you see that version number, Node.js is installed correctly!
+#### Install Browser (for Display Only) (5 minutes)
 
-### Install Browser Dependencies (5 minutes)
+Chromium is needed for kiosk mode (fullscreen display).
 
 ```bash
-# Install Chromium browser and codecs
-sudo apt install -y chromium-browser chromium-codecs-ffmpeg-extra
+sudo apt install -y chromium-browser
 
-# Install libraries needed by the scraper
-sudo apt install -y libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2
+# Verify
+chromium-browser --version
 ```
 
-### Install Git (1 minute)
+**Note:** The scraper doesn't need a browser - it uses lightweight HTML parsing.
+
+---
+
+#### Install Git (1 minute)
 
 ```bash
 sudo apt install -y git
 
-# Check it worked
+# Verify
 git --version
 ```
 
-### Install PM2 (2 minutes)
+---
 
-PM2 keeps the server running 24/7.
+#### Install PM2 (2 minutes)
+
+PM2 manages the server process and ensures it restarts on boot.
 
 ```bash
+# Install globally
 sudo npm install -g pm2
 
-# Check it worked
+# Verify
 pm2 --version
 ```
 
-Great! All required software is installed.
+---
+
+### Part 3: Installing the Noticeboard
+
+#### Download the Application (5 minutes)
+
+**Option A: Clone from Git**
+
+```bash
+cd /home/pi
+git clone <your-repo-url> lmrc-noticeboard
+cd lmrc-noticeboard
+```
+
+**Option B: Copy Files from USB**
+
+```bash
+# Insert USB drive, then:
+cd /home/pi
+cp -r /media/pi/USB_NAME/lmrc-noticeboard .
+cd lmrc-noticeboard
+```
+
+**Option C: Download from Computer via SCP**
+
+```bash
+# On your computer (not Pi):
+scp -r lmrc-noticeboard pi@lmrc-noticeboard.local:/home/pi/
+```
 
 ---
 
-## Part 3: Installing the Noticeboard
-
-### Download the Application (5 minutes)
+#### Install Dependencies (10 minutes)
 
 ```bash
-# Go to your home folder
-cd ~
-
-# Download from GitHub
-git clone https://github.com/UndefinedRest/LMRC_Noticeboard.git lmrc-noticeboard
-
-# Enter the folder
-cd lmrc-noticeboard
-
-# Verify you're in the right place
-pwd
-```
-
-Should show: `/home/pi/lmrc-noticeboard`
-
-### Install Dependencies (10 minutes)
-
-```bash
+cd /home/pi/lmrc-noticeboard
 npm install
+
+# This will take 5-10 minutes
+# You'll see progress bars
 ```
 
-This downloads all the code libraries. Takes 5-10 minutes. You'll see lots of output - this is normal!
+**Common errors:**
+- "EACCES permission denied" → Run `sudo npm install` instead
+- "Network timeout" → Check internet connection
 
-When done, you'll see: "added XXX packages"
+---
 
-### Configure Login Credentials (3 minutes)
-
-1. **Copy the template file**
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Edit the file**
-   ```bash
-   nano .env
-   ```
-
-3. **A text editor opens**. Use arrow keys to move. Edit these lines:
-   ```
-   REVSPORT_USERNAME=your_username_here
-   REVSPORT_PASSWORD=your_password_here
-   PORT=3000
-   NODE_ENV=production
-   ```
-
-   Replace `your_username_here` and `your_password_here` with your actual RevSport login details.
-
-4. **Save and exit**:
-   - Press `Ctrl+X`
-   - Press `Y` (for "yes, save")
-   - Press `Enter`
-
-### Build the Website (3 minutes)
+#### Build the Website (3 minutes)
 
 ```bash
 npm run build
+
+# Should see:
+# ✓ built in XXXms
+# Creates files in public/ directory
 ```
 
-You'll see lots of output ending with: "build complete"
+---
 
-### Test the Scraper (2-5 minutes)
+#### Test the Scraper (2-5 minutes)
 
 ```bash
 npm run scrape
 ```
 
-**What you should see:**
-- "Authenticating with RevSport..."
-- "Scraping gallery..."
-- "Scraping events..."
-- "Scraping news..."
-- "Scraping sponsors..."
-- "Scraping completed successfully!"
+**You should see:**
+```
+═══════════════════════════════════════════════
+  LMRC NOTICEBOARD SCRAPER (Lightweight)
+═══════════════════════════════════════════════
 
-**If you see errors:**
-- Check your username/password in `.env` (Step "Configure Login Credentials")
-- Make sure you have internet connection
+[Gallery] Scraping gallery...
+[Gallery] Found X albums
+[Gallery] Captured XXX total photos
 
-### Test the Server (2 minutes)
+[Events] Scraping events...
+[Events] Found X upcoming events
+
+[News] Scraping news...
+[News] Found X news items
+
+[Sponsors] Scraping sponsors...
+[Sponsors] Found X sponsors
+
+✓ All scraping completed successfully!
+```
+
+**Verify data files created:**
+```bash
+ls -lh data/
+# Should show 4 files:
+# gallery-data.json
+# events-data.json
+# news-data.json
+# sponsors-data.json
+```
+
+**If scraper fails:**
+- Check internet connection
+- Verify RevSport website is accessible: `curl https://www.lakemacquarierowingclub.org.au/`
+
+---
+
+#### Test the Server (2 minutes)
 
 ```bash
 npm start
@@ -328,170 +502,241 @@ npm start
 
 **You should see:**
 ```
-PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
-  LMRC NOTICEBOARD SERVER
-PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
-Server running on: http://localhost:3000
+[Scheduler] Running scraper on startup...
+[Scheduler] Started with schedule: 0 */4 * * *
+
+Server running on http://localhost:3000
 ```
 
-**Now test in browser:**
-1. Open Chromium browser (globe icon at top)
-2. Type in address bar: `http://localhost:3000`
-3. Press Enter
+**Test in browser:**
+1. Open Chromium on Pi
+2. Go to: `http://localhost:3000`
+3. You should see the noticeboard!
 
-You should see the noticeboard with events, photos, news, and sponsors!
+**Test config page:**
+1. Go to: `http://localhost:3000/config`
+2. You should see configuration interface
 
 **Stop the server:**
-- Go back to Terminal
-- Press `Ctrl+C`
+- Press `Ctrl+C` in Terminal
 
 ---
 
-## Part 4: Automatic Startup
+### Part 4: Automatic Startup
 
-### Start Server with PM2 (2 minutes)
+#### Start Server with PM2 (2 minutes)
+
+PM2 will keep the server running and restart it if it crashes.
 
 ```bash
-# Make sure you're in the app folder
-cd ~/lmrc-noticeboard
+cd /home/pi/lmrc-noticeboard
 
-# Start with PM2
+# Start server with PM2
 pm2 start server.js --name lmrc-noticeboard
 
 # Check status
 pm2 status
+# Should show: lmrc-noticeboard | online
+
+# View logs
+pm2 logs lmrc-noticeboard --lines 20
 ```
 
-You should see a table showing "lmrc-noticeboard" with status "online" and green color.
-
-### Make PM2 Start on Boot (2 minutes)
-
+**PM2 Commands:**
 ```bash
-pm2 startup
+pm2 status              # Check if running
+pm2 restart lmrc-noticeboard  # Restart
+pm2 stop lmrc-noticeboard     # Stop
+pm2 logs lmrc-noticeboard     # View logs
 ```
-
-This prints a long command starting with `sudo env PATH=...`
-
-**Copy that entire command and run it** (paste with Ctrl+Shift+V).
-
-Then save the PM2 configuration:
-```bash
-pm2 save
-```
-
-### Set Up Hourly Scraping (5 minutes)
-
-This makes the scraper run every hour to get fresh data.
-
-```bash
-crontab -e
-```
-
-If asked "Select an editor", type `1` and press Enter (for nano).
-
-A file opens. Use arrow keys to go to the very bottom, then add this line:
-
-```
-5 * * * * cd /home/pi/lmrc-noticeboard && /usr/bin/node scraper/noticeboard-scraper.js >> /home/pi/lmrc-noticeboard/scraper.log 2>&1
-```
-
-**What this means:** "At 5 minutes past every hour, run the scraper and save output to a log file"
-
-Save and exit: `Ctrl+X`, `Y`, `Enter`
-
-Verify:
-```bash
-crontab -l
-```
-
-You should see your line.
 
 ---
 
-## Part 5: Kiosk Mode
-
-This makes the browser open fullscreen automatically when the Pi boots.
-
-### Create Autostart Folder (1 minute)
+#### Make PM2 Start on Boot (2 minutes)
 
 ```bash
-mkdir -p ~/.config/lxsession/LXDE-pi
+# Run this command
+pm2 startup
+
+# It will print a command like:
+# sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u pi --hp /home/pi
+
+# COPY and RUN that exact command it printed
+# (Paste it into terminal and press Enter)
+
+# Save the current PM2 process list
+pm2 save
 ```
 
-### Create Autostart File (5 minutes)
+Now PM2 will auto-start your server on every reboot!
 
+---
+
+#### Configure Automated Scraping (2 minutes)
+
+**The scraper has a built-in scheduler - no manual cron setup needed!**
+
+**Configure via Web UI:**
+1. Open browser: `http://localhost:3000/config`
+2. Scroll to **"Scraper Controls"** section
+3. Configure settings:
+   - **Enable Automatic Scraping:** ✅ (checked)
+   - **Schedule:** Select from dropdown (default: Every 4 hours)
+   - **Run on Startup:** ✅ (checked)
+4. Click "Save Changes"
+5. Click "Run Scraper Now" to test
+
+**Schedule Options:**
+- Every hour: `0 * * * *`
+- Every 2 hours: `0 */2 * * *`
+- Every 4 hours: `0 */4 * * *` (recommended)
+- Every 6 hours: `0 */6 * * *`
+- Once daily at 6am: `0 6 * * *`
+
+**Monitor scraper:**
 ```bash
-nano ~/.config/lxsession/LXDE-pi/autostart
+# View last scraper run
+curl http://localhost:3000/api/scraper/status
+
+# View scraper logs
+tail -f /home/pi/lmrc-noticeboard/scraper.log
 ```
 
-An empty file opens. Copy and paste this entire block (use Ctrl+Shift+V):
+---
+
+### Part 5: Kiosk Mode
+
+Make Chromium open fullscreen automatically on boot.
+
+#### Create Autostart Folder (1 minute)
 
 ```bash
+mkdir -p /home/pi/.config/lxsession/LXDE-pi
+```
+
+---
+
+#### Create Autostart File (5 minutes)
+
+```bash
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+```
+
+**Paste this exactly:**
+
+```bash
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver -no-splash
+
 # Disable screen blanking
 @xset s off
 @xset -dpms
 @xset s noblank
 
-# Fix Chromium crash detection
-@sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' ~/.config/chromium/Default/Preferences
-@sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' ~/.config/chromium/Default/Preferences
-
-# Wait for server to start (15 seconds)
-@sleep 15
-
-# Start Chromium in kiosk mode (fullscreen)
-@chromium-browser --noerrdialogs --disable-infobars --kiosk --incognito http://localhost:3000
+# Start Chromium in kiosk mode
+@bash -c 'sleep 10 && chromium-browser --kiosk --app=http://localhost:3000 --start-fullscreen --disable-infobars --noerrdialogs --disable-session-crashed-bubble --disable-gpu'
 ```
 
-Save and exit: `Ctrl+X`, `Y`, `Enter`
+**Save and exit:**
+- Press `Ctrl+X`
+- Press `Y` to confirm
+- Press `Enter` to save
 
-### Hide Mouse Cursor - Optional (2 minutes)
+**Explanation of settings:**
+- `sleep 10` - Wait for server to start
+- `--kiosk` - Fullscreen mode, no browser UI
+- `--disable-infobars` - No "Chrome is being controlled" message
+- `--noerrdialogs` - No error popups
+- `--disable-session-crashed-bubble` - No crash notifications
+
+---
+
+#### Hide Mouse Cursor - Optional (2 minutes)
+
+The mouse cursor will be visible in kiosk mode. To hide it:
 
 ```bash
 sudo apt install -y unclutter
 
-nano ~/.config/lxsession/LXDE-pi/autostart
-```
+# Edit autostart again
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
 
-Add this line at the very top (before @xset):
-```bash
+# Add this line at the end:
 @unclutter -idle 0.1 -root
 ```
 
-Save and exit.
+---
 
-### Disable Screen Sleep (3 minutes)
+#### Disable Screen Sleep (3 minutes)
+
+Prevent TV from going black.
+
+**Already done** in the autostart file above with:
+```bash
+@xset s off       # Disable screensaver
+@xset -dpms       # Disable power management
+@xset s noblank   # Prevent screen blanking
+```
+
+**Also check TV settings:**
+- Disable "Auto Power Off"
+- Disable "Sleep Timer"
+- Set "HDMI CEC" to keep TV awake
+
+**For stubborn screens:**
 
 ```bash
-sudo nano /etc/lightdm/lightdm.conf
+# Edit config.txt
+sudo nano /boot/firmware/config.txt
+
+# Add at the end:
+hdmi_blanking=1
+hdmi_force_hotplug=1
+
+# Save and reboot
+sudo reboot
 ```
 
-Press `Ctrl+W`, type `[Seat:*]`, press Enter to search.
+---
 
-Under that section, add this line:
-```ini
-xserver-command=X -s 0 -dpms
+#### Enable Auto-Login (2 minutes)
+
+Make Pi boot directly to desktop (no login screen).
+
+```bash
+sudo raspi-config
 ```
 
-Save and exit.
+Navigate:
+1. **System Options** → Enter
+2. **Boot / Auto Login** → Enter
+3. **Desktop Autologin** → Enter
+4. **Finish** → Enter
 
-### Test Everything! (5 minutes)
+---
+
+#### Test Everything! (5 minutes)
 
 ```bash
 sudo reboot
 ```
 
-**The Pi will restart. Wait 1-2 minutes.**
+**Watch the Pi boot:**
 
-**What should happen:**
-1. Pi boots up
-2. Desktop appears briefly
-3. After ~15 seconds, Chromium opens fullscreen
-4. Your noticeboard is displayed!
-5. Mouse cursor invisible (if you installed unclutter)
-6. Screen never goes blank
+1. **Boot sequence** (~30 seconds)
+2. **Desktop appears** (~10 seconds)
+3. **Chromium starts** (after 10 second delay)
+4. **Noticeboard displays fullscreen!**
 
-**Success!** If you see the noticeboard fullscreen, you're done!
+**What you should see:**
+- ✅ Fullscreen noticeboard (no browser chrome)
+- ✅ Header with logo, date/time, weather
+- ✅ Three panels: Events, Photos, News
+- ✅ Footer with sponsors
+- ✅ No mouse cursor (if unclutter installed)
+
+**If something's wrong, see [Troubleshooting](#troubleshooting).**
 
 ---
 
@@ -501,92 +746,224 @@ sudo reboot
 
 **Check if server is running:**
 ```bash
-# Press Ctrl+Alt+T to open a terminal
 pm2 status
+# Should show: lmrc-noticeboard | online
 ```
 
-Should show "online". If not:
+**If offline, check logs:**
 ```bash
-pm2 restart lmrc-noticeboard
+pm2 logs lmrc-noticeboard --lines 50
 ```
 
-**Increase wait time:**
+**Common causes:**
+- Port 3000 already in use → `sudo lsof -i :3000` (kill the process)
+- Server crashed → `pm2 restart lmrc-noticeboard`
+- PM2 not starting on boot → Re-run `pm2 startup` and `pm2 save`
+
+**Check autostart:**
 ```bash
-nano ~/.config/lxsession/LXDE-pi/autostart
+cat /home/pi/.config/lxsession/LXDE-pi/autostart
+# Should have the Chromium kiosk command
 ```
-Change `@sleep 15` to `@sleep 30`
+
+**Chromium taking too long to start:**
+```bash
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+```
+Change `sleep 10` to `sleep 30`
+
+---
 
 ### Problem: No data showing (blank panels)
 
+**Check scraper status via Web UI:**
+1. SSH into Pi: `ssh pi@lmrc-noticeboard.local`
+2. Open browser: `http://localhost:3000/config`
+3. Check "Scraper Controls" section
+4. Look for error messages in Last Run status
+
+**Or manually trigger scraper:**
 ```bash
 cd ~/lmrc-noticeboard
 npm run scrape
 ```
 
-Check for errors. Common issues:
-- Wrong username/password in `.env`
-- No internet connection
-- RevSport website temporarily down
+**Common issues:**
+- No internet connection → Check WiFi/Ethernet
+- RevSport website temporarily down → Wait and retry
+- Scraper disabled in config → Check Enable toggle in web UI
+
+**Check data files:**
+```bash
+ls -lh ~/lmrc-noticeboard/data/
+# Files should be recent (within last few hours)
+```
+
+---
 
 ### Problem: Screen goes black after some time
 
-```bash
-cat ~/.config/lxsession/LXDE-pi/autostart
-```
+**TV is going to sleep:**
 
-Should include:
-```
-@xset s off
-@xset -dpms
-@xset s noblank
-```
+1. Check TV settings:
+   - Disable "Auto Power Off"
+   - Disable "Sleep Timer"
+   - Disable "Eco Mode"
 
-If missing, add them (see Part 5, Step 2).
+2. Check HDMI CEC settings:
+   ```bash
+   sudo nano /boot/firmware/config.txt
+   # Add:
+   hdmi_force_hotplug=1
+   ```
+
+3. Install screen keeper:
+   ```bash
+   sudo apt install -y xdotool
+   nano /home/pi/.config/lxsession/LXDE-pi/autostart
+   # Add at end:
+   @bash -c 'while true; do xdotool mousemove 0 0; sleep 300; done'
+   ```
+
+---
 
 ### Problem: Chromium doesn't start
 
-**Test manually:**
+**Check if autostart file exists:**
 ```bash
-chromium-browser --kiosk http://localhost:3000
+cat /home/pi/.config/lxsession/LXDE-pi/autostart
 ```
 
-If that works, check autostart file for typos.
+**If file doesn't exist, create it:**
+```bash
+mkdir -p /home/pi/.config/lxsession/LXDE-pi
+nano /home/pi/.config/lxsession/LXDE-pi/autostart
+# Paste the kiosk mode configuration from Part 5
+```
+
+**Test Chromium manually:**
+```bash
+chromium-browser --kiosk --app=http://localhost:3000
+# Should open fullscreen
+# Press Alt+F4 to close
+```
+
+---
+
+### Problem: Weather not showing
+
+**Update BOM station ID:**
+1. Go to: `http://localhost:3000/config`
+2. Find your nearest BOM station: http://www.bom.gov.au/places/
+3. Update "BOM Station ID" in Weather section
+4. Save changes
+
+---
+
+### Problem: Old data (content not updating)
+
+**Check scheduler status:**
+```bash
+curl http://localhost:3000/api/scraper/status
+```
+
+**Check if scraper is enabled:**
+1. Open: `http://localhost:3000/config`
+2. Check "Enable Automatic Scraping" is checked
+3. Check schedule is set correctly
+
+**View scraper logs:**
+```bash
+tail -50 ~/lmrc-noticeboard/scraper.log
+```
+
+**Manually trigger scraper:**
+```bash
+curl -X POST http://localhost:3000/api/scraper/trigger
+```
+
+---
+
+### Problem: Server crashes or restarts frequently
+
+**View error logs:**
+```bash
+pm2 logs lmrc-noticeboard --lines 100
+```
+
+**Common causes:**
+- Low memory → Add swap space
+- Overheating → Add cooling fan/heatsinks
+- Corrupted SD card → Replace card
+
+**Add swap space:**
+```bash
+sudo dphys-swapfile swapoff
+sudo nano /etc/dphys-swapfile
+# Change CONF_SWAPSIZE=100 to CONF_SWAPSIZE=1024
+sudo dphys-swapfile setup
+sudo dphys-swapfile swapon
+```
+
+**Check temperature:**
+```bash
+vcgencmd measure_temp
+# Should be < 70°C under load
+```
 
 ---
 
 ## Maintenance
 
 ### Weekly: Visual Check
-- Visit the display
-- Is it showing current content?
-- Are events/news up to date?
+
+Just look at the TV:
+- ✅ Is noticeboard displaying?
+- ✅ Is content recent (check dates)?
+- ✅ Are photos rotating?
+- ✅ Is time/weather showing?
+
+**If anything looks wrong, see [Troubleshooting](#troubleshooting).**
+
+---
 
 ### Monthly: Check Logs
 
 ```bash
-cd ~/lmrc-noticeboard
+ssh pi@lmrc-noticeboard.local
 
-# Check scraper is working
-tail -100 scraper.log
-
-# Check server is running
+# Check server health
 pm2 status
+pm2 logs lmrc-noticeboard --lines 50
+
+# Check scraper logs
+tail -100 ~/lmrc-noticeboard/scraper.log
 
 # Check disk space
 df -h
+# Should have > 2GB free on /
+
+# Check memory
+free -h
 ```
+
+---
 
 ### Updating the Application
 
-When there are new features:
+When there's a new version:
 
 ```bash
+ssh pi@lmrc-noticeboard.local
 cd ~/lmrc-noticeboard
 
-# Download latest code
+# Backup current config
+cp config.json config.json.backup
+
+# Pull latest changes
 git pull
 
-# Update dependencies
+# Install any new dependencies
 npm install
 
 # Rebuild
@@ -596,21 +973,45 @@ npm run build
 pm2 restart lmrc-noticeboard
 ```
 
+---
+
 ### Changing Settings
 
-**Edit timing, colors, etc:**
+**Use the Web Configuration Editor (Recommended):**
+1. Open browser: `http://lmrc-noticeboard.local:3000/config`
+2. Navigate to the relevant section (Timing, Branding, etc.)
+3. Make your changes using the form controls
+4. Click "Save Changes" (automatic backup created)
+5. Changes apply within 60 seconds (no restart needed)
+
+**Or edit manually (Advanced):**
 ```bash
-cd ~/lmrc-noticeboard
-nano config.json
+ssh pi@lmrc-noticeboard.local
+nano ~/lmrc-noticeboard/config.json
+
+# Make changes, save, and exit
+# Changes apply automatically within 60 seconds
 ```
 
-Make your changes, save, and exit. Changes apply within 60 seconds (no restart needed).
+**Common adjustments:**
+- Rotation timing → `timing` section
+- Club colors → `branding.clubColors`
+- Sponsor logos → `sponsors` array
+- Scraper schedule → `scraper.schedule`
+
+---
 
 ### System Updates (Every 2-3 months)
 
+Keep Raspberry Pi OS updated:
+
 ```bash
+ssh pi@lmrc-noticeboard.local
+
 sudo apt update
 sudo apt upgrade -y
+
+# If kernel was updated, reboot
 sudo reboot
 ```
 
@@ -626,9 +1027,16 @@ pm2 status                          # Check server
 pm2 restart lmrc-noticeboard       # Restart server
 pm2 logs lmrc-noticeboard          # View logs
 
-# Scraper
+# Scraper Management
 cd ~/lmrc-noticeboard && npm run scrape    # Run manually
-tail -50 ~/lmrc-noticeboard/scraper.log    # View log
+curl http://localhost:3000/api/scraper/status    # Check scheduler status
+curl -X POST http://localhost:3000/api/scraper/trigger    # Trigger scraper via API
+
+# Configuration
+# Use web UI: http://lmrc-noticeboard.local:3000/config
+# Or edit manually:
+cd ~/lmrc-noticeboard
+nano config.json                   # Edit settings (advanced)
 
 # System
 sudo reboot                         # Restart Pi
@@ -636,27 +1044,37 @@ sudo shutdown -h now               # Shutdown Pi
 df -h                              # Disk space
 free -h                            # Memory usage
 vcgencmd measure_temp              # Temperature
-
-# Edit Files
-cd ~/lmrc-noticeboard
-nano .env                          # Edit credentials
-nano config.json                   # Edit settings
 ```
+
+---
 
 ### File Locations
 
 ```
 /home/pi/lmrc-noticeboard/          Main folder
-   .env                             Login credentials
-   config.json                      All settings
-   server.js                        Server program
-   data/                            Scraped data
-      gallery-data.json
-      events-data.json
-      news-data.json
-      sponsors-data.json
-   scraper.log                      Scraper log file
+   config.json                      All settings
+   server.js                        Server program
+   server-scheduler.js              Scraper scheduler
+   data/                            Scraped data
+      gallery-data.json
+      events-data.json
+      news-data.json
+      sponsors-data.json
+   scraper.log                      Scraper log file
 ```
+
+---
+
+### Web Interfaces
+
+```
+http://lmrc-noticeboard.local:3000         # Main noticeboard display
+http://lmrc-noticeboard.local:3000/config  # Configuration editor
+http://lmrc-noticeboard.local:3000/api/health      # Server health check
+http://lmrc-noticeboard.local:3000/api/scraper/status  # Scraper status
+```
+
+---
 
 ### Remote Access
 
@@ -672,7 +1090,13 @@ ssh pi@192.168.1.XXX
 
 Enter your password when asked.
 
-Now you can manage the Pi without keyboard/mouse/monitor!
+**Enable VNC for graphical access:**
+```bash
+sudo raspi-config
+# Interface Options → VNC → Enable
+```
+
+Then use VNC Viewer on your computer to connect to `lmrc-noticeboard.local`.
 
 ---
 
@@ -680,62 +1104,150 @@ Now you can manage the Pi without keyboard/mouse/monitor!
 
 Track your progress:
 
-- [ ] Hardware purchased
+**Hardware:**
+- [ ] Raspberry Pi purchased
+- [ ] MicroSD card purchased
+- [ ] Power supply purchased
+- [ ] Micro HDMI cable purchased
 - [ ] Raspberry Pi OS installed on SD card
 - [ ] Pi boots and shows desktop
+
+**Software:**
 - [ ] System updated (`apt update` & `upgrade`)
-- [ ] IP address written down
+- [ ] IP address noted down
 - [ ] Node.js installed (v20.x)
-- [ ] Browser dependencies installed
+- [ ] Chromium installed
 - [ ] Git installed
 - [ ] PM2 installed
-- [ ] Repository cloned from GitHub
+
+**Application:**
+- [ ] Repository cloned/copied
 - [ ] npm install completed successfully
-- [ ] .env file configured with credentials
 - [ ] Frontend built (`npm run build`)
 - [ ] Scraper tested successfully
 - [ ] Server tested in browser (localhost:3000)
+
+**Production Setup:**
 - [ ] PM2 started and shows "online"
 - [ ] PM2 startup enabled
 - [ ] PM2 saved
-- [ ] Cron job created for hourly scraping
+- [ ] Scraper scheduler configured via web UI
 - [ ] Autostart file created
+- [ ] Auto-login enabled
 - [ ] Screen blanking disabled
 - [ ] Mouse cursor hidden (optional)
+
+**Final Tests:**
 - [ ] Reboot test - noticeboard appears automatically
 - [ ] Display never goes to sleep
+- [ ] Content updates automatically
+- [ ] Clock shows correct time
+- [ ] Weather displays
+
+---
+
+## Verification Checklist
+
+After deployment, verify everything works:
+
+**Visual Check:**
+- [ ] TV displays noticeboard in fullscreen
+- [ ] Header shows club logo, date/time, weather
+- [ ] Left panel shows upcoming events
+- [ ] Center rotates through photos/news
+- [ ] Right panel shows news items
+- [ ] Footer shows sponsors and social media
+- [ ] Content updates automatically
+
+**System Check:**
+```bash
+# SSH into Pi
+ssh pi@lmrc-noticeboard.local
+
+# Check server is running
+pm2 status
+# Should show: lmrc-noticeboard | online
+
+# Check data files exist and are recent
+ls -lh /home/pi/lmrc-noticeboard/data/
+# Should show files modified within configured schedule
+
+# Check API is working
+curl http://localhost:3000/api/health
+# Should return: {"status":"healthy",...}
+
+# Check scheduler status
+curl http://localhost:3000/api/scraper/status
+# Should show: {"enabled":true,"schedule":"0 */4 * * *",...}
+
+# Check scraper log
+tail -20 /home/pi/lmrc-noticeboard/scraper.log
+# Should show successful scrapes
+```
+
+---
+
+## Customization
+
+### Required Setup
+
+After installation, customize these via Web UI (`http://lmrc-noticeboard.local:3000/config`):
+
+1. **Branding:**
+   - Upload club logo (`public/assets/logo.png`)
+   - Set club colors
+   - Update club name and tagline
+
+2. **Weather:**
+   - Set correct BOM station ID for your location
+   - Find at: http://www.bom.gov.au/places/
+
+3. **Social Media:**
+   - Add Facebook handle
+   - Add Instagram handle
+
+4. **Sponsors:**
+   - Upload sponsor logos to `public/assets/sponsors/`
+   - Add sponsor details in config
+
+5. **Timing:**
+   - Adjust rotation speeds (default: 15s/45s/30s)
+   - Set scraper schedule (default: every 4 hours)
+
+### Optional Customization
+
+- Adjust max events/news displayed
+- Change panel widths
+- Enable/disable Ken Burns effect on photos
+- Customize fallback messages
+- Add custom CSS
 
 ---
 
 ## Success!
 
-**Congratulations!** <�
+**Congratulations!** Your digital noticeboard is running.
 
-If you've made it through all the steps, your digital noticeboard should now be:
+**Your noticeboard is working when:**
+- ✅ Displays automatically on boot
+- ✅ Shows current date/time and weather
+- ✅ Rotates through club photos
+- ✅ Lists upcoming events
+- ✅ Shows recent news and results
+- ✅ Displays sponsor logos
+- ✅ Updates content automatically (every 4 hours by default)
+- ✅ Runs 24/7 without intervention
 
--  Displaying events, photos, news, and sponsors
--  Updating content automatically every hour
--  Starting automatically when powered on
--  Running fullscreen without any intervention
--  Operating 24/7 without maintenance
+**Next Steps:**
+- Test for 24 hours to ensure stability
+- Train committee members on web-based configuration
+- Setup email alerts for failures (optional)
+- Schedule monthly maintenance checks
+- Consider purchasing spare Pi as backup
 
-**Installation Details:**
+**For Further Help:**
+- See [CLAUDE.md](CLAUDE.md) for architecture details
+- See [README.md](README.md) for feature overview
+- Check `config.json` for all available options
 
-Date: ________________
-
-Installed by: ________________
-
-Pi IP Address: ________________
-
-Network: Ethernet / WiFi (circle one)
-
-Notes:
-__________________________________________
-__________________________________________
-__________________________________________
-
----
-
-**For help or questions, refer to the Troubleshooting section or check the project repository on GitHub.**
-
-**Enjoy your new digital noticeboard!** =�B
+**Enjoy your new digital noticeboard!** 🚣‍♂️

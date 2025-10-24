@@ -35,19 +35,9 @@ fi
 echo "✓ Node.js version: $(node --version)"
 echo "✓ npm version: $(npm --version)"
 
-# Install Chromium
+# Install Chromium (for kiosk display only)
 echo "📦 Installing Chromium browser..."
 sudo apt install -y chromium-browser
-
-# Install Puppeteer dependencies
-echo "📦 Installing Puppeteer dependencies..."
-sudo apt install -y \
-  libnss3 \
-  libatk-bridge2.0-0 \
-  libdrm2 \
-  libxkbcommon0 \
-  libgbm1 \
-  libasound2
 
 # Install git
 echo "📦 Installing git..."
@@ -76,10 +66,6 @@ fi
 echo "📦 Installing application dependencies..."
 npm install
 
-# Run setup wizard
-echo "⚙️  Running setup wizard..."
-npm run setup
-
 # Build React application
 echo "🔨 Building React application..."
 npm run build
@@ -94,10 +80,6 @@ echo "Press Enter when done..."
 read
 
 pm2 save
-
-# Setup cron job for scraper
-echo "⚙️  Setting up hourly scraper cron job..."
-(crontab -l 2>/dev/null | grep -v "noticeboard-scraper.js"; echo "5 * * * * cd /home/pi/lmrc-noticeboard && /usr/bin/node scraper/noticeboard-scraper.js >> /home/pi/lmrc-noticeboard/scraper.log 2>&1") | crontab -
 
 # Configure autostart
 echo "⚙️  Configuring Chromium autostart..."
@@ -127,12 +109,25 @@ echo "  INSTALLATION COMPLETE!"
 echo "═══════════════════════════════════════════════"
 echo ""
 echo "Next steps:"
-echo "1. Add your club logo: /home/pi/lmrc-noticeboard/public/assets/logo.png"
-echo "2. Add sponsor logos: /home/pi/lmrc-noticeboard/public/assets/sponsors/"
-echo "3. Review configuration: nano /home/pi/lmrc-noticeboard/config.json"
+echo "1. Configure via Web UI: http://localhost:3000/config"
+echo "   - Set club colors, timing, and branding"
+echo "   - Configure scraper schedule (default: every 4 hours)"
+echo "   - Trigger initial scraper run"
+echo "2. Add your club logo: /home/pi/lmrc-noticeboard/public/assets/logo.png"
+echo "3. Add sponsor logos: /home/pi/lmrc-noticeboard/public/assets/sponsors/"
 echo "4. Reboot to start kiosk mode: sudo reboot"
 echo ""
 echo "After reboot, the noticeboard will automatically display!"
+echo ""
+echo "Web Configuration Interface:"
+echo "  http://localhost:3000/config  - Configure all settings"
+echo "  http://localhost:3000         - View noticeboard"
+echo ""
+echo "Built-in Scraper Scheduler:"
+echo "  ✓ No cron setup needed!"
+echo "  ✓ Auto-runs on startup"
+echo "  ✓ Configurable via web UI"
+echo "  ✓ Default: Every 4 hours"
 echo ""
 echo "To manage the server:"
 echo "  pm2 status              - Check status"
