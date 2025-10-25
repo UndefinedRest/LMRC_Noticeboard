@@ -456,6 +456,33 @@ function getWindArrow(degrees) {
 }
 
 // ============================================================
+// CALENDAR ICON (Consistent SVG across all platforms)
+// ============================================================
+
+function CalendarIcon({ size = 24, color = 'currentColor' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'inline-block', verticalAlign: 'middle' }}
+    >
+      <rect x="3" y="6" width="18" height="15" rx="2" stroke={color} strokeWidth="2" fill="none"/>
+      <path d="M3 10h18" stroke={color} strokeWidth="2"/>
+      <path d="M7 3v4" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M17 3v4" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="8" cy="14" r="1" fill={color}/>
+      <circle cx="12" cy="14" r="1" fill={color}/>
+      <circle cx="16" cy="14" r="1" fill={color}/>
+      <circle cx="8" cy="18" r="1" fill={color}/>
+      <circle cx="12" cy="18" r="1" fill={color}/>
+    </svg>
+  );
+}
+
+// ============================================================
 // HEADER COMPONENT
 // ============================================================
 
@@ -577,7 +604,9 @@ function LeftPanel({ events, colors, width = 35, fontSize }) {
               style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
             >
               <div className="flex items-start gap-3">
-                <div style={{ fontSize: `${fontSize('3xl')}px` }}>📅</div>
+                <div style={{ width: `${fontSize('3xl')}px`, height: `${fontSize('3xl')}px`, flexShrink: 0 }}>
+                  <CalendarIcon size={fontSize('3xl')} color="white" />
+                </div>
                 <div className="flex-1">
                   <div className="font-semibold" style={{ fontSize: `${fontSize('xl')}px` }}>
                     {event.title}
@@ -599,7 +628,9 @@ function LeftPanel({ events, colors, width = 35, fontSize }) {
           ))
         ) : (
           <div className="text-center py-12 opacity-60">
-            <div className="mb-4" style={{ fontSize: `${fontSize('5xl')}px` }}>📅</div>
+            <div className="mb-4 flex justify-center">
+              <CalendarIcon size={fontSize('5xl')} color="white" />
+            </div>
             <div style={{ fontSize: `${fontSize('lg')}px` }}>No upcoming events</div>
             <div className="mt-2" style={{ fontSize: `${fontSize('sm')}px` }}>
               Check the website for updates
@@ -795,7 +826,7 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
 
           {article.date && (
             <div className="opacity-80 mb-2 flex items-center gap-2" style={{ fontSize: `${fontSize('sm')}px` }}>
-              <span>📅</span>
+              <CalendarIcon size={fontSize('base')} color="white" />
               <span>{article.date}</span>
             </div>
           )}
