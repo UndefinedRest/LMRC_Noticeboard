@@ -306,7 +306,7 @@ app.post('/api/config/update', async (req, res) => {
     }
 
     // Validate required sections exist (only those actually used by the frontend)
-    const requiredSections = ['timing', 'branding', 'news', 'weather', 'socialMedia'];
+    const requiredSections = ['display', 'timing', 'branding', 'news', 'weather', 'socialMedia'];
     const missingSections = requiredSections.filter(section => !newConfig[section]);
 
     if (missingSections.length > 0) {

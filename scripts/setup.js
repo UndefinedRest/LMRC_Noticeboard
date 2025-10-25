@@ -37,6 +37,15 @@ async function setup() {
       const instagramHandle = await question('Instagram Handle (e.g., @lmrc_rowing): ') || '@lmrc_rowing';
       
       const defaultConfig = {
+        display: {
+          layout: {
+            leftPanelWidth: 35,
+            centerPanelWidth: 30,
+            rightPanelWidth: 35,
+            headerHeight: 120,
+            footerHeight: 120
+          }
+        },
         timing: {
           heroRotationSeconds: 15,
           newsPanelRotationSeconds: 45,

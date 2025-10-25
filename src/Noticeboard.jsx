@@ -292,41 +292,54 @@ function Noticeboard() {
     text: '#333333'
   };
 
+  // Get layout configuration with defaults
+  const layout = config?.display?.layout || {
+    leftPanelWidth: 35,
+    centerPanelWidth: 30,
+    rightPanelWidth: 35,
+    headerHeight: 120,
+    footerHeight: 120
+  };
+
   return (
-    <div 
+    <div
       className="w-screen h-screen overflow-hidden flex flex-col"
       style={{ backgroundColor: colors.background, color: colors.text }}
     >
       {/* HEADER */}
-      <Header 
+      <Header
         config={config}
         currentTime={currentTime}
         weather={weather}
         colors={colors}
+        height={layout.headerHeight}
       />
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex" style={{ minHeight: 0 }}>
         {/* LEFT PANEL - UPCOMING EVENTS */}
-        <LeftPanel 
+        <LeftPanel
           events={upcomingEvents}
           colors={colors}
+          width={layout.leftPanelWidth}
         />
 
         {/* CENTER HERO */}
-        <CenterHero 
+        <CenterHero
           item={currentHero}
           colors={colors}
           config={config}
+          width={layout.centerPanelWidth}
         />
 
         {/* RIGHT PANEL - NEWS */}
-        <RightPanel 
+        <RightPanel
           article={currentNewsArticle}
           articleIndex={currentNewsIndex}
           totalArticles={filteredNews.length}
           colors={colors}
           config={config}
+          width={layout.rightPanelWidth}
         />
       </div>
 
@@ -334,6 +347,7 @@ function Noticeboard() {
       <Footer
         sponsorGroup={currentSponsorGroup}
         config={config}
+        height={layout.footerHeight}
         colors={colors}
         lastRefresh={lastRefresh}
         lastScrape={lastScrape}
@@ -414,7 +428,7 @@ function getWindArrow(degrees) {
 // HEADER COMPONENT
 // ============================================================
 
-function Header({ config, currentTime, weather, colors }) {
+function Header({ config, currentTime, weather, colors, height = 120 }) {
   const formatDate = () => {
     return currentTime.toLocaleDateString('en-AU', {
       weekday: 'long',
@@ -431,10 +445,17 @@ function Header({ config, currentTime, weather, colors }) {
     });
   };
 
+  // Scale logo to 80% of header height
+  const logoHeight = Math.floor(height * 0.8);
+
   return (
     <div
-      className="h-24 flex items-center justify-between px-8 relative"
-      style={{ backgroundColor: colors.primary, color: 'white' }}
+      className="flex items-center justify-between px-8 relative"
+      style={{
+        height: `${height}px`,
+        backgroundColor: colors.primary,
+        color: 'white'
+      }}
     >
       {/* Logo - Left aligned */}
       <div className="flex items-center gap-4 z-10">
@@ -442,7 +463,7 @@ function Header({ config, currentTime, weather, colors }) {
           <img
             src={config.branding.clubLogoPath}
             alt={config.branding.clubName || 'Club Logo'}
-            className="h-20 object-contain"
+            style={{ height: `${logoHeight}px`, objectFit: 'contain' }}
           />
         ) : (
           <div className="text-6xl">🚣</div>
@@ -492,11 +513,15 @@ function Header({ config, currentTime, weather, colors }) {
 // LEFT PANEL - UPCOMING EVENTS
 // ============================================================
 
-function LeftPanel({ events, colors }) {
+function LeftPanel({ events, colors, width = 35 }) {
   return (
-    <div 
-      className="w-1/4 p-6 overflow-hidden"
-      style={{ backgroundColor: colors.secondary, color: 'white' }}
+    <div
+      className="p-6 overflow-hidden"
+      style={{
+        width: `${width}%`,
+        backgroundColor: colors.secondary,
+        color: 'white'
+      }}
     >
       <h2 className="text-3xl font-bold mb-6">Upcoming Events</h2>
       
@@ -541,12 +566,15 @@ function LeftPanel({ events, colors }) {
 // CENTER HERO - ROTATING CONTENT
 // ============================================================
 
-function CenterHero({ item, colors, config }) {
+function CenterHero({ item, colors, config, width = 30 }) {
   if (!item) {
     return (
       <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: colors.background }}
+        className="flex items-center justify-center"
+        style={{
+          width: `${width}%`,
+          backgroundColor: colors.background
+        }}
       >
         <div className="text-center">
           {config.branding?.clubLogoPath ? (
@@ -572,7 +600,10 @@ function CenterHero({ item, colors, config }) {
 
   if (item.type === 'photo') {
     return (
-      <div className="flex-1 relative overflow-hidden">
+      <div
+        className="relative overflow-hidden"
+        style={{ width: `${width}%` }}
+      >
         <img 
           src={item.url}
           alt={item.title}
@@ -597,9 +628,12 @@ function CenterHero({ item, colors, config }) {
 
   if (item.type === 'result') {
     return (
-      <div 
-        className="flex-1 flex items-center justify-center p-12"
-        style={{ backgroundColor: colors.accent }}
+      <div
+        className="flex items-center justify-center p-12"
+        style={{
+          width: `${width}%`,
+          backgroundColor: colors.accent
+        }}
       >
         <div className="text-center max-w-4xl">
           <div className="text-8xl mb-6">🏆</div>
@@ -617,9 +651,12 @@ function CenterHero({ item, colors, config }) {
   }
 
   return (
-    <div 
-      className="flex-1 flex items-center justify-center p-12"
-      style={{ backgroundColor: colors.background }}
+    <div
+      className="flex items-center justify-center p-12"
+      style={{
+        width: `${width}%`,
+        backgroundColor: colors.background
+      }}
     >
       <div className="text-center max-w-4xl">
         <div className="text-7xl mb-6">📢</div>
@@ -640,12 +677,16 @@ function CenterHero({ item, colors, config }) {
 // RIGHT PANEL - NEWS ARTICLE (FULL CONTENT)
 // ============================================================
 
-function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
+function RightPanel({ article, articleIndex, totalArticles, colors, config, width = 35 }) {
   if (!article) {
     return (
-      <div 
-        className="w-1/4 p-6 overflow-hidden flex flex-col"
-        style={{ backgroundColor: colors.primary, color: 'white' }}
+      <div
+        className="p-6 overflow-hidden flex flex-col"
+        style={{
+          width: `${width}%`,
+          backgroundColor: colors.primary,
+          color: 'white'
+        }}
       >
         <h2 className="text-3xl font-bold mb-6">Latest News</h2>
         <div className="flex-1 flex items-center justify-center">
@@ -666,9 +707,13 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
     : content;
 
   return (
-    <div 
-      className="w-1/4 p-6 overflow-hidden flex flex-col"
-      style={{ backgroundColor: colors.primary, color: 'white' }}
+    <div
+      className="p-6 overflow-hidden flex flex-col"
+      style={{
+        width: `${width}%`,
+        backgroundColor: colors.primary,
+        color: 'white'
+      }}
     >
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold">Latest News</h2>
@@ -728,7 +773,7 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config }) {
 // FOOTER - SPONSORS CAROUSEL & SOCIAL MEDIA
 // ============================================================
 
-function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, currentTime }) {
+function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, currentTime, height = 120 }) {
   const formatRefreshTime = () => {
     if (!lastRefresh.timestamp) return '--:--';
     return lastRefresh.timestamp.toLocaleTimeString('en-AU', {
@@ -758,8 +803,14 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
     return `${diffDays} days ago`;
   };
 
+  // Calculate sponsor logo height (70% of footer height for main area)
+  const sponsorHeight = Math.floor(height * 0.5);
+
   return (
-    <div className="h-32 flex flex-col">
+    <div
+      className="flex flex-col"
+      style={{ height: `${height}px` }}
+    >
       {/* Sponsors Row - White Background */}
       <div
         className="flex-1 flex items-center justify-center px-8"
@@ -774,13 +825,13 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
               <div
                 key={idx}
                 className="flex items-center justify-center"
-                style={{ height: '60px' }}
+                style={{ height: `${sponsorHeight}px` }}
               >
                 <img
                   src={sponsor.logoUrl}
                   alt={sponsor.name}
                   className="max-h-full max-w-full object-contain"
-                  style={{ maxHeight: '60px', maxWidth: '150px' }}
+                  style={{ maxHeight: `${sponsorHeight}px`, maxWidth: '150px' }}
                 />
               </div>
             ))}

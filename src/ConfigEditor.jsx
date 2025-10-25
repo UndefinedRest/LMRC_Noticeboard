@@ -217,6 +217,7 @@ function ConfigEditor() {
 
   const navigationItems = [
     { id: 'overview', icon: '📊', label: 'Overview' },
+    { id: 'display', icon: '🖥️', label: 'Display & Layout' },
     { id: 'branding', icon: '🎨', label: 'Branding' },
     { id: 'timing', icon: '⏱️', label: 'Timing & Rotation' },
     { id: 'news', icon: '📰', label: 'News' },
@@ -321,6 +322,140 @@ function ConfigEditor() {
                 healthData={healthData}
                 hasUnsavedChanges={hasUnsavedChanges}
               />
+            </div>
+
+            {/* Display & Layout */}
+            <div data-section="display">
+              <Section title="Display & Layout" icon="🖥️">
+                <div style={styles.infoBox}>
+                  <strong>📐 Layout Control:</strong> Adjust panel widths and heights to optimize for your TV size and viewing distance.
+                </div>
+
+                <SubSection title="Panel Widths">
+                  <div style={styles.infoBox}>
+                    ℹ️ Widths must total 100%. Adjust to balance content importance.
+                  </div>
+
+                  <Field label="Left Panel Width (Events)" help="Percentage of screen width for the events panel">
+                    <div style={styles.sliderGroup}>
+                      <input
+                        type="range"
+                        value={config.display?.layout?.leftPanelWidth || 35}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'leftPanelWidth', parseInt(e.target.value))}
+                        style={styles.slider}
+                        min="20"
+                        max="40"
+                      />
+                      <input
+                        type="number"
+                        value={config.display?.layout?.leftPanelWidth || 35}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'leftPanelWidth', parseInt(e.target.value))}
+                        style={styles.numberInput}
+                        min="20"
+                        max="40"
+                      />
+                      <span style={styles.unit}>%</span>
+                    </div>
+                  </Field>
+
+                  <Field label="Center Panel Width (Photos/Hero)" help="Percentage of screen width for the center photo panel">
+                    <div style={styles.sliderGroup}>
+                      <input
+                        type="range"
+                        value={config.display?.layout?.centerPanelWidth || 30}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'centerPanelWidth', parseInt(e.target.value))}
+                        style={styles.slider}
+                        min="20"
+                        max="50"
+                      />
+                      <input
+                        type="number"
+                        value={config.display?.layout?.centerPanelWidth || 30}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'centerPanelWidth', parseInt(e.target.value))}
+                        style={styles.numberInput}
+                        min="20"
+                        max="50"
+                      />
+                      <span style={styles.unit}>%</span>
+                    </div>
+                  </Field>
+
+                  <Field label="Right Panel Width (News)" help="Percentage of screen width for the news panel">
+                    <div style={styles.sliderGroup}>
+                      <input
+                        type="range"
+                        value={config.display?.layout?.rightPanelWidth || 35}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'rightPanelWidth', parseInt(e.target.value))}
+                        style={styles.slider}
+                        min="20"
+                        max="40"
+                      />
+                      <input
+                        type="number"
+                        value={config.display?.layout?.rightPanelWidth || 35}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'rightPanelWidth', parseInt(e.target.value))}
+                        style={styles.numberInput}
+                        min="20"
+                        max="40"
+                      />
+                      <span style={styles.unit}>%</span>
+                    </div>
+                  </Field>
+
+                  <div style={{...styles.infoBox, ...{marginTop: '1rem'}}}>
+                    <strong>Total:</strong> {(config.display?.layout?.leftPanelWidth || 35) + (config.display?.layout?.centerPanelWidth || 30) + (config.display?.layout?.rightPanelWidth || 35)}%
+                    {((config.display?.layout?.leftPanelWidth || 35) + (config.display?.layout?.centerPanelWidth || 30) + (config.display?.layout?.rightPanelWidth || 35)) !== 100 && (
+                      <span style={{color: '#d32f2f', marginLeft: '0.5rem'}}>⚠️ Must equal 100%</span>
+                    )}
+                  </div>
+                </SubSection>
+
+                <SubSection title="Header & Footer Heights">
+                  <Field label="Header Height" help="Height of the top header bar (club name, date, weather)">
+                    <div style={styles.sliderGroup}>
+                      <input
+                        type="range"
+                        value={config.display?.layout?.headerHeight || 120}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'headerHeight', parseInt(e.target.value))}
+                        style={styles.slider}
+                        min="80"
+                        max="160"
+                      />
+                      <input
+                        type="number"
+                        value={config.display?.layout?.headerHeight || 120}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'headerHeight', parseInt(e.target.value))}
+                        style={styles.numberInput}
+                        min="80"
+                        max="160"
+                      />
+                      <span style={styles.unit}>px</span>
+                    </div>
+                  </Field>
+
+                  <Field label="Footer Height" help="Height of the bottom footer bar (sponsors, social media)">
+                    <div style={styles.sliderGroup}>
+                      <input
+                        type="range"
+                        value={config.display?.layout?.footerHeight || 120}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'footerHeight', parseInt(e.target.value))}
+                        style={styles.slider}
+                        min="80"
+                        max="160"
+                      />
+                      <input
+                        type="number"
+                        value={config.display?.layout?.footerHeight || 120}
+                        onChange={(e) => updateNestedConfig('display', 'layout', 'footerHeight', parseInt(e.target.value))}
+                        style={styles.numberInput}
+                        min="80"
+                        max="160"
+                      />
+                      <span style={styles.unit}>px</span>
+                    </div>
+                  </Field>
+                </SubSection>
+              </Section>
             </div>
 
             {/* Branding & Display */}
