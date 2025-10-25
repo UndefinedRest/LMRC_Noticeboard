@@ -416,19 +416,19 @@ function ConfigEditor() {
                     <div style={styles.sliderGroup}>
                       <input
                         type="range"
-                        value={config.display?.layout?.headerHeight || 120}
+                        value={config.display?.layout?.headerHeight || 140}
                         onChange={(e) => updateNestedConfig('display', 'layout', 'headerHeight', parseInt(e.target.value))}
                         style={styles.slider}
-                        min="80"
-                        max="160"
+                        min="100"
+                        max="180"
                       />
                       <input
                         type="number"
-                        value={config.display?.layout?.headerHeight || 120}
+                        value={config.display?.layout?.headerHeight || 140}
                         onChange={(e) => updateNestedConfig('display', 'layout', 'headerHeight', parseInt(e.target.value))}
                         style={styles.numberInput}
-                        min="80"
-                        max="160"
+                        min="100"
+                        max="180"
                       />
                       <span style={styles.unit}>px</span>
                     </div>
@@ -438,19 +438,19 @@ function ConfigEditor() {
                     <div style={styles.sliderGroup}>
                       <input
                         type="range"
-                        value={config.display?.layout?.footerHeight || 120}
+                        value={config.display?.layout?.footerHeight || 160}
                         onChange={(e) => updateNestedConfig('display', 'layout', 'footerHeight', parseInt(e.target.value))}
                         style={styles.slider}
-                        min="80"
-                        max="160"
+                        min="120"
+                        max="200"
                       />
                       <input
                         type="number"
-                        value={config.display?.layout?.footerHeight || 120}
+                        value={config.display?.layout?.footerHeight || 160}
                         onChange={(e) => updateNestedConfig('display', 'layout', 'footerHeight', parseInt(e.target.value))}
                         style={styles.numberInput}
-                        min="80"
-                        max="160"
+                        min="120"
+                        max="200"
                       />
                       <span style={styles.unit}>px</span>
                     </div>

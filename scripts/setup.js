@@ -42,8 +42,8 @@ async function setup() {
             leftPanelWidth: 35,
             centerPanelWidth: 30,
             rightPanelWidth: 35,
-            headerHeight: 120,
-            footerHeight: 120
+            headerHeight: 140,
+            footerHeight: 160
           },
           typography: {
             baseFontSize: 30,
