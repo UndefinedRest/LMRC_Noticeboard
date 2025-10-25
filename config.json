@@ -6,6 +6,24 @@
       "rightPanelWidth": 35,
       "headerHeight": 120,
       "footerHeight": 120
+    },
+    "typography": {
+      "baseFontSize": 24,
+      "fontScale": {
+        "xs": 0.75,
+        "sm": 0.85,
+        "base": 1.0,
+        "lg": 1.15,
+        "xl": 1.35,
+        "2xl": 1.5,
+        "3xl": 1.75,
+        "4xl": 2.0,
+        "5xl": 2.5,
+        "6xl": 3.0,
+        "7xl": 3.5,
+        "8xl": 4.0,
+        "9xl": 4.5
+      }
     }
   },
   "timing": {

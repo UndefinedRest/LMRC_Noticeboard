@@ -301,6 +301,32 @@ function Noticeboard() {
     footerHeight: 120
   };
 
+  // Get typography configuration with defaults
+  const typography = config?.display?.typography || {
+    baseFontSize: 24,
+    fontScale: {
+      xs: 0.75,
+      sm: 0.85,
+      base: 1.0,
+      lg: 1.15,
+      xl: 1.35,
+      '2xl': 1.5,
+      '3xl': 1.75,
+      '4xl': 2.0,
+      '5xl': 2.5,
+      '6xl': 3.0,
+      '7xl': 3.5,
+      '8xl': 4.0,
+      '9xl': 4.5
+    }
+  };
+
+  // Font size utility function
+  const fontSize = (size) => {
+    const scale = typography.fontScale[size] || 1.0;
+    return Math.round(typography.baseFontSize * scale);
+  };
+
   return (
     <div
       className="w-screen h-screen overflow-hidden flex flex-col"
@@ -313,6 +339,7 @@ function Noticeboard() {
         weather={weather}
         colors={colors}
         height={layout.headerHeight}
+        fontSize={fontSize}
       />
 
       {/* MAIN CONTENT */}
@@ -322,6 +349,7 @@ function Noticeboard() {
           events={upcomingEvents}
           colors={colors}
           width={layout.leftPanelWidth}
+          fontSize={fontSize}
         />
 
         {/* CENTER HERO */}
@@ -330,6 +358,7 @@ function Noticeboard() {
           colors={colors}
           config={config}
           width={layout.centerPanelWidth}
+          fontSize={fontSize}
         />
 
         {/* RIGHT PANEL - NEWS */}
@@ -340,6 +369,7 @@ function Noticeboard() {
           colors={colors}
           config={config}
           width={layout.rightPanelWidth}
+          fontSize={fontSize}
         />
       </div>
 
@@ -352,6 +382,7 @@ function Noticeboard() {
         lastRefresh={lastRefresh}
         lastScrape={lastScrape}
         currentTime={currentTime}
+        fontSize={fontSize}
       />
     </div>
   );
@@ -428,7 +459,7 @@ function getWindArrow(degrees) {
 // HEADER COMPONENT
 // ============================================================
 
-function Header({ config, currentTime, weather, colors, height = 120 }) {
+function Header({ config, currentTime, weather, colors, height = 120, fontSize }) {
   const formatDate = () => {
     return currentTime.toLocaleDateString('en-AU', {
       weekday: 'long',
@@ -466,11 +497,15 @@ function Header({ config, currentTime, weather, colors, height = 120 }) {
             style={{ height: `${logoHeight}px`, objectFit: 'contain' }}
           />
         ) : (
-          <div className="text-6xl">🚣</div>
+          <div style={{ fontSize: `${fontSize('6xl')}px` }}>🚣</div>
         )}
         <div>
-          <div className="text-3xl font-bold">{config.branding?.clubName || 'LMRC'}</div>
-          <div className="text-sm opacity-80">{config.branding?.tagline || ''}</div>
+          <div className="font-bold" style={{ fontSize: `${fontSize('4xl')}px` }}>
+            {config.branding?.clubName || 'LMRC'}
+          </div>
+          <div className="opacity-80" style={{ fontSize: `${fontSize('sm')}px` }}>
+            {config.branding?.tagline || ''}
+          </div>
         </div>
       </div>
 
@@ -479,22 +514,28 @@ function Header({ config, currentTime, weather, colors, height = 120 }) {
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center"
         style={{ zIndex: 5 }}
       >
-        <div className="text-2xl font-semibold">{formatDate()}</div>
-        <div className="text-xl">{formatTime()}</div>
+        <div className="font-semibold" style={{ fontSize: `${fontSize('2xl')}px` }}>
+          {formatDate()}
+        </div>
+        <div style={{ fontSize: `${fontSize('xl')}px` }}>{formatTime()}</div>
       </div>
 
       {/* Weather - Right aligned */}
       <div className="flex items-center gap-4 z-10">
         {weather && weather.temperature != null ? (
           <>
-            <div className="text-5xl">
+            <div style={{ fontSize: `${fontSize('5xl')}px` }}>
               {getWeatherIcon(weather.icon, weather.temperature)}
             </div>
             <div>
-              <div className="text-3xl font-bold">{weather.temperature}°C</div>
-              <div className="text-sm opacity-80">{weather.location || 'Local'}</div>
+              <div className="font-bold" style={{ fontSize: `${fontSize('4xl')}px` }}>
+                {weather.temperature}°C
+              </div>
+              <div className="opacity-80" style={{ fontSize: `${fontSize('sm')}px` }}>
+                {weather.location || 'Local'}
+              </div>
               {weather.windSpeed != null && (
-                <div className="text-sm opacity-80 flex items-center gap-1 mt-1">
+                <div className="opacity-80 flex items-center gap-1 mt-1" style={{ fontSize: `${fontSize('sm')}px` }}>
                   {getWindArrow(weather.windDirection)}
                   <span>{weather.windSpeed} km/h {getWindDirection(weather.windDirection)}</span>
                 </div>
@@ -502,7 +543,7 @@ function Header({ config, currentTime, weather, colors, height = 120 }) {
             </div>
           </>
         ) : (
-          <div className="text-2xl">--°C</div>
+          <div style={{ fontSize: `${fontSize('2xl')}px` }}>--°C</div>
         )}
       </div>
     </div>
@@ -513,7 +554,7 @@ function Header({ config, currentTime, weather, colors, height = 120 }) {
 // LEFT PANEL - UPCOMING EVENTS
 // ============================================================
 
-function LeftPanel({ events, colors, width = 35 }) {
+function LeftPanel({ events, colors, width = 35, fontSize }) {
   return (
     <div
       className="p-6 overflow-hidden"
@@ -523,25 +564,31 @@ function LeftPanel({ events, colors, width = 35 }) {
         color: 'white'
       }}
     >
-      <h2 className="text-3xl font-bold mb-6">Upcoming Events</h2>
-      
+      <h2 className="font-bold mb-6" style={{ fontSize: `${fontSize('3xl')}px` }}>
+        Upcoming Events
+      </h2>
+
       <div className="space-y-4">
         {events.length > 0 ? (
           events.map((event, idx) => (
-            <div 
+            <div
               key={idx}
               className="p-4 rounded-lg"
               style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
             >
               <div className="flex items-start gap-3">
-                <div className="text-3xl">📅</div>
+                <div style={{ fontSize: `${fontSize('3xl')}px` }}>📅</div>
                 <div className="flex-1">
-                  <div className="text-xl font-semibold">{event.title}</div>
+                  <div className="font-semibold" style={{ fontSize: `${fontSize('xl')}px` }}>
+                    {event.title}
+                  </div>
                   {event.date && (
-                    <div className="text-sm opacity-80 mt-1">{event.date}</div>
+                    <div className="opacity-80 mt-1" style={{ fontSize: `${fontSize('sm')}px` }}>
+                      {event.date}
+                    </div>
                   )}
                   {event.location && (
-                    <div className="text-sm opacity-80 mt-1 flex items-center gap-1">
+                    <div className="opacity-80 mt-1 flex items-center gap-1" style={{ fontSize: `${fontSize('sm')}px` }}>
                       <span>📍</span>
                       <span>{event.location}</span>
                     </div>
@@ -552,9 +599,11 @@ function LeftPanel({ events, colors, width = 35 }) {
           ))
         ) : (
           <div className="text-center py-12 opacity-60">
-            <div className="text-5xl mb-4">📅</div>
-            <div className="text-lg">No upcoming events</div>
-            <div className="text-sm mt-2">Check the website for updates</div>
+            <div className="mb-4" style={{ fontSize: `${fontSize('5xl')}px` }}>📅</div>
+            <div style={{ fontSize: `${fontSize('lg')}px` }}>No upcoming events</div>
+            <div className="mt-2" style={{ fontSize: `${fontSize('sm')}px` }}>
+              Check the website for updates
+            </div>
           </div>
         )}
       </div>
@@ -566,7 +615,7 @@ function LeftPanel({ events, colors, width = 35 }) {
 // CENTER HERO - ROTATING CONTENT
 // ============================================================
 
-function CenterHero({ item, colors, config, width = 30 }) {
+function CenterHero({ item, colors, config, width = 30, fontSize }) {
   if (!item) {
     return (
       <div
@@ -585,12 +634,12 @@ function CenterHero({ item, colors, config, width = 30 }) {
               style={{ maxHeight: '200px', objectFit: 'contain' }}
             />
           ) : (
-            <div className="text-9xl mb-6">🚣</div>
+            <div className="mb-6" style={{ fontSize: `${fontSize('9xl')}px` }}>🚣</div>
           )}
-          <div className="text-4xl font-bold mb-4" style={{ color: colors.primary }}>
+          <div className="font-bold mb-4" style={{ fontSize: `${fontSize('4xl')}px`, color: colors.primary }}>
             Lake Macquarie Rowing Club
           </div>
-          <div className="text-2xl" style={{ color: colors.text }}>
+          <div style={{ fontSize: `${fontSize('2xl')}px`, color: colors.text }}>
             {config.branding?.tagline || 'Welcome to our club'}
           </div>
         </div>
@@ -604,17 +653,19 @@ function CenterHero({ item, colors, config, width = 30 }) {
         className="relative overflow-hidden"
         style={{ width: `${width}%` }}
       >
-        <img 
+        <img
           src={item.url}
           alt={item.title}
           className="w-full h-full object-cover"
           style={{ animation: 'kenburns 15s ease-in-out' }}
         />
-        <div 
+        <div
           className="absolute bottom-0 left-0 right-0 p-6"
           style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}
         >
-          <div className="text-white text-3xl font-bold">{item.title}</div>
+          <div className="text-white font-bold" style={{ fontSize: `${fontSize('3xl')}px` }}>
+            {item.title}
+          </div>
         </div>
         <style>{`
           @keyframes kenburns {
@@ -636,12 +687,12 @@ function CenterHero({ item, colors, config, width = 30 }) {
         }}
       >
         <div className="text-center max-w-4xl">
-          <div className="text-8xl mb-6">🏆</div>
-          <div className="text-5xl font-bold mb-6" style={{ color: colors.primary }}>
+          <div className="mb-6" style={{ fontSize: `${fontSize('8xl')}px` }}>🏆</div>
+          <div className="font-bold mb-6" style={{ fontSize: `${fontSize('5xl')}px`, color: colors.primary }}>
             {item.title}
           </div>
           {item.snippet && (
-            <div className="text-2xl" style={{ color: colors.text }}>
+            <div style={{ fontSize: `${fontSize('2xl')}px`, color: colors.text }}>
               {item.snippet}
             </div>
           )}
@@ -659,12 +710,12 @@ function CenterHero({ item, colors, config, width = 30 }) {
       }}
     >
       <div className="text-center max-w-4xl">
-        <div className="text-7xl mb-6">📢</div>
-        <div className="text-4xl font-bold mb-6" style={{ color: colors.primary }}>
+        <div className="mb-6" style={{ fontSize: `${fontSize('7xl')}px` }}>📢</div>
+        <div className="font-bold mb-6" style={{ fontSize: `${fontSize('4xl')}px`, color: colors.primary }}>
           {item.title}
         </div>
         {item.snippet && (
-          <div className="text-2xl" style={{ color: colors.text }}>
+          <div style={{ fontSize: `${fontSize('2xl')}px`, color: colors.text }}>
             {item.snippet}
           </div>
         )}
@@ -677,7 +728,7 @@ function CenterHero({ item, colors, config, width = 30 }) {
 // RIGHT PANEL - NEWS ARTICLE (FULL CONTENT)
 // ============================================================
 
-function RightPanel({ article, articleIndex, totalArticles, colors, config, width = 35 }) {
+function RightPanel({ article, articleIndex, totalArticles, colors, config, width = 35, fontSize }) {
   if (!article) {
     return (
       <div
@@ -688,11 +739,13 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
           color: 'white'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">Latest News</h2>
+        <h2 className="font-bold mb-6" style={{ fontSize: `${fontSize('3xl')}px` }}>
+          Latest News
+        </h2>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center opacity-60">
-            <div className="text-5xl mb-4">📰</div>
-            <div className="text-lg">No recent news</div>
+            <div className="mb-4" style={{ fontSize: `${fontSize('5xl')}px` }}>📰</div>
+            <div style={{ fontSize: `${fontSize('lg')}px` }}>No recent news</div>
           </div>
         </div>
       </div>
@@ -716,39 +769,46 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
       }}
     >
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold">Latest News</h2>
+        <h2 className="font-bold" style={{ fontSize: `${fontSize('3xl')}px` }}>
+          Latest News
+        </h2>
         {totalArticles > 1 && (
-          <div className="text-sm opacity-70">
+          <div className="opacity-70" style={{ fontSize: `${fontSize('sm')}px` }}>
             {articleIndex + 1}/{totalArticles}
           </div>
         )}
       </div>
-      
+
       <div className="flex-1 overflow-hidden">
         {/* Article Header */}
         <div className="mb-4">
           {article.isFeatured && (
-            <div className="inline-block px-3 py-1 rounded text-xs font-bold mb-2"
-                 style={{ backgroundColor: colors.accent, color: colors.primary }}>
+            <div className="inline-block px-3 py-1 rounded font-bold mb-2"
+                 style={{
+                   fontSize: `${fontSize('xs')}px`,
+                   backgroundColor: colors.accent,
+                   color: colors.primary
+                 }}>
               FEATURED
             </div>
           )}
-          
+
           {article.date && (
-            <div className="text-sm opacity-80 mb-2 flex items-center gap-2">
+            <div className="opacity-80 mb-2 flex items-center gap-2" style={{ fontSize: `${fontSize('sm')}px` }}>
               <span>📅</span>
               <span>{article.date}</span>
             </div>
           )}
-          
-          <h3 className="text-2xl font-bold leading-tight mb-4">
+
+          <h3 className="font-bold leading-tight mb-4" style={{ fontSize: `${fontSize('2xl')}px` }}>
             {article.title}
           </h3>
         </div>
 
         {/* Article Content */}
         <div
-          className="text-base leading-relaxed opacity-90"
+          className="leading-relaxed opacity-90"
+          style={{ fontSize: `${fontSize('base')}px` }}
         >
           {displayContent.split('\n\n').map((paragraph, idx) => (
             <p key={idx} className="mb-3">
@@ -759,8 +819,8 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
 
         {/* Type Badge */}
         {article.type === 'result' && (
-          <div className="mt-4 flex items-center gap-2 text-sm opacity-80">
-            <span className="text-2xl">🏆</span>
+          <div className="mt-4 flex items-center gap-2 opacity-80" style={{ fontSize: `${fontSize('sm')}px` }}>
+            <span style={{ fontSize: `${fontSize('2xl')}px` }}>🏆</span>
             <span>Race Results</span>
           </div>
         )}
@@ -773,7 +833,7 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
 // FOOTER - SPONSORS CAROUSEL & SOCIAL MEDIA
 // ============================================================
 
-function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, currentTime, height = 120 }) {
+function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, currentTime, height = 120, fontSize }) {
   const formatRefreshTime = () => {
     if (!lastRefresh.timestamp) return '--:--';
     return lastRefresh.timestamp.toLocaleTimeString('en-AU', {
@@ -818,7 +878,7 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
       >
         {sponsorGroup && sponsorGroup.length > 0 ? (
           <div className="flex items-center gap-8">
-            <div className="text-sm mr-4" style={{ color: colors.text, opacity: 0.7 }}>
+            <div className="mr-4" style={{ fontSize: `${fontSize('sm')}px`, color: colors.text, opacity: 0.7 }}>
               Proudly supported by:
             </div>
             {sponsorGroup.map((sponsor, idx) => (
@@ -837,7 +897,7 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
             ))}
           </div>
         ) : (
-          <div className="text-sm" style={{ color: colors.text, opacity: 0.7 }}>
+          <div style={{ fontSize: `${fontSize('sm')}px`, color: colors.text, opacity: 0.7 }}>
             Thank you to our club sponsors
           </div>
         )}
@@ -861,7 +921,9 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
               </svg>
-              <span className="text-sm font-medium">{config.socialMedia.facebook.handle}</span>
+              <span className="font-medium" style={{ fontSize: `${fontSize('sm')}px` }}>
+                {config.socialMedia.facebook.handle}
+              </span>
             </a>
           )}
           {config.socialMedia?.instagram?.enabled && (
@@ -875,13 +937,15 @@ function Footer({ sponsorGroup, config, colors, lastRefresh, lastScrape, current
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
               </svg>
-              <span className="text-sm font-medium">{config.socialMedia.instagram.handle}</span>
+              <span className="font-medium" style={{ fontSize: `${fontSize('sm')}px` }}>
+                {config.socialMedia.instagram.handle}
+              </span>
             </a>
           )}
         </div>
 
         {/* Data Scrape Status - Right */}
-        <div className="flex items-center gap-2 text-xs" style={{ opacity: 0.7 }}>
+        <div className="flex items-center gap-2" style={{ fontSize: `${fontSize('xs')}px`, opacity: 0.7 }}>
           <span
             style={{
               color: lastRefresh.success ? '#4ADE80' : '#EF4444',
