@@ -303,7 +303,7 @@ function Noticeboard() {
 
   // Get typography configuration with defaults
   const typography = config?.display?.typography || {
-    baseFontSize: 24,
+    baseFontSize: 30,
     fontScale: {
       xs: 0.75,
       sm: 0.85,
@@ -583,12 +583,12 @@ function LeftPanel({ events, colors, width = 35, fontSize }) {
                     {event.title}
                   </div>
                   {event.date && (
-                    <div className="opacity-80 mt-1" style={{ fontSize: `${fontSize('sm')}px` }}>
+                    <div className="opacity-80 mt-1" style={{ fontSize: `${fontSize('base')}px` }}>
                       {event.date}
                     </div>
                   )}
                   {event.location && (
-                    <div className="opacity-80 mt-1 flex items-center gap-1" style={{ fontSize: `${fontSize('sm')}px` }}>
+                    <div className="opacity-80 mt-1 flex items-center gap-1" style={{ fontSize: `${fontSize('base')}px` }}>
                       <span>📍</span>
                       <span>{event.location}</span>
                     </div>
@@ -808,7 +808,7 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
         {/* Article Content */}
         <div
           className="leading-relaxed opacity-90"
-          style={{ fontSize: `${fontSize('base')}px` }}
+          style={{ fontSize: `${fontSize('lg')}px` }}
         >
           {displayContent.split('\n\n').map((paragraph, idx) => (
             <p key={idx} className="mb-3">

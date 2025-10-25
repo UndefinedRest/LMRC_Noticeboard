@@ -464,33 +464,33 @@ function ConfigEditor() {
               <Section title="Typography" icon="🔤">
                 <div style={styles.infoBox}>
                   <strong>📏 Font Size Control:</strong> All text sizes scale proportionally from the base font size.
-                  Increase for better TV viewing at distance. Recommended: 24px for 55" TV at 3m viewing distance.
+                  Increase for better TV viewing at distance. Recommended: 30px for 55" TV at 3m viewing distance.
                 </div>
 
-                <Field label="Base Font Size" help="All text scales from this size. Default 24px is 50% larger than standard web fonts.">
+                <Field label="Base Font Size" help="All text scales from this size. Default 30px is optimized for TV viewing.">
                   <div style={styles.sliderGroup}>
                     <input
                       type="range"
-                      value={config.display?.typography?.baseFontSize || 24}
+                      value={config.display?.typography?.baseFontSize || 30}
                       onChange={(e) => updateNestedConfig('display', 'typography', 'baseFontSize', parseInt(e.target.value))}
                       style={styles.slider}
-                      min="16"
-                      max="32"
+                      min="20"
+                      max="40"
                     />
                     <input
                       type="number"
-                      value={config.display?.typography?.baseFontSize || 24}
+                      value={config.display?.typography?.baseFontSize || 30}
                       onChange={(e) => updateNestedConfig('display', 'typography', 'baseFontSize', parseInt(e.target.value))}
                       style={styles.numberInput}
-                      min="16"
-                      max="32"
+                      min="20"
+                      max="40"
                     />
                     <span style={styles.unit}>px</span>
                   </div>
                   <div style={{...styles.infoBox, ...{marginTop: '0.75rem', fontSize: '0.9em', padding: '8px 12px'}}}>
-                    <strong>Preview:</strong> Headings: {Math.round((config.display?.typography?.baseFontSize || 24) * 2)}px,
-                    Body text: {config.display?.typography?.baseFontSize || 24}px,
-                    Small text: {Math.round((config.display?.typography?.baseFontSize || 24) * 0.85)}px
+                    <strong>Preview:</strong> Headings: {Math.round((config.display?.typography?.baseFontSize || 30) * 2)}px,
+                    Body text: {config.display?.typography?.baseFontSize || 30}px,
+                    Small text: {Math.round((config.display?.typography?.baseFontSize || 30) * 0.85)}px
                   </div>
                 </Field>
               </Section>

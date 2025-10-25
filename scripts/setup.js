@@ -46,7 +46,7 @@ async function setup() {
             footerHeight: 120
           },
           typography: {
-            baseFontSize: 24,
+            baseFontSize: 30,
             fontScale: {
               xs: 0.75,
               sm: 0.85,
