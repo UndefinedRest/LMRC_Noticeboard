@@ -83,6 +83,37 @@
     "runOnStartup": true,
     "startupDelaySeconds": 10,
     "maxRetries": 3,
-    "timeoutSeconds": 30
+    "timeoutSeconds": 30,
+    "cloudflareAvoidance": {
+      "enabled": true,
+      "requestDelayMs": {
+        "min": 2000,
+        "max": 5000
+      },
+      "scheduleWindows": [
+        {
+          "name": "peak",
+          "startTime": "05:30",
+          "endTime": "08:30",
+          "intervalMinutes": 15,
+          "description": "High frequency during morning rowing sessions"
+        },
+        {
+          "name": "off-peak",
+          "startTime": "08:30",
+          "endTime": "17:30",
+          "intervalMinutes": 240,
+          "description": "Low frequency during quiet hours"
+        },
+        {
+          "name": "evening",
+          "startTime": "17:30",
+          "endTime": "23:00",
+          "intervalMinutes": 120,
+          "description": "Moderate frequency during evening sessions"
+        }
+      ],
+      "lastRunTimestampFile": "data/.last-scrape-timestamp"
+    }
   }
 }

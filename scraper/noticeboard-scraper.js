@@ -39,6 +39,89 @@ const PATHS = config.scraper?.paths || {
 const DATA_DIR = path.join(__dirname, '../data');
 const MAX_RETRIES = config.scraper?.maxRetries || 3;
 const TIMEOUT_MS = (config.scraper?.timeoutSeconds || 30) * 1000;
+const CLOUDFLARE_AVOIDANCE = config.scraper?.cloudflareAvoidance || { enabled: false };
+const LAST_RUN_FILE = path.join(__dirname, '..', CLOUDFLARE_AVOIDANCE.lastRunTimestampFile || 'data/.last-scrape-timestamp');
+
+/**
+ * Sleep for a random duration between min and max milliseconds
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Get a random delay based on configuration
+ */
+function getRandomDelay() {
+  if (!CLOUDFLARE_AVOIDANCE.enabled) return 0;
+
+  const min = CLOUDFLARE_AVOIDANCE.requestDelayMs?.min || 2000;
+  const max = CLOUDFLARE_AVOIDANCE.requestDelayMs?.max || 5000;
+  return min + Math.random() * (max - min);
+}
+
+/**
+ * Check if current time is within any configured schedule window
+ * AND if enough time has passed since last run
+ */
+function shouldRunNow() {
+  if (!CLOUDFLARE_AVOIDANCE.enabled) return true;
+
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // Check if we're in any active window
+  const scheduleWindows = CLOUDFLARE_AVOIDANCE.scheduleWindows || [];
+  let activeWindow = null;
+
+  for (const window of scheduleWindows) {
+    if (currentTime >= window.startTime && currentTime < window.endTime) {
+      activeWindow = window;
+      break;
+    }
+  }
+
+  if (!activeWindow) {
+    console.log(`[Schedule] Current time ${currentTime} is outside all configured windows`);
+    return false;
+  }
+
+  console.log(`[Schedule] In "${activeWindow.name}" window (${activeWindow.startTime}-${activeWindow.endTime})`);
+  console.log(`[Schedule] Configured interval: ${activeWindow.intervalMinutes} minutes`);
+
+  // Check last run time
+  try {
+    if (fsSync.existsSync(LAST_RUN_FILE)) {
+      const lastRunTime = parseInt(fsSync.readFileSync(LAST_RUN_FILE, 'utf8'));
+      const minutesSinceLastRun = (Date.now() - lastRunTime) / 1000 / 60;
+
+      console.log(`[Schedule] Last run: ${minutesSinceLastRun.toFixed(1)} minutes ago`);
+
+      if (minutesSinceLastRun < activeWindow.intervalMinutes) {
+        const waitMinutes = (activeWindow.intervalMinutes - minutesSinceLastRun).toFixed(1);
+        console.log(`[Schedule] Too soon! Wait ${waitMinutes} more minutes`);
+        return false;
+      }
+    }
+  } catch (err) {
+    console.log(`[Schedule] No previous run timestamp found`);
+  }
+
+  console.log(`[Schedule] ✓ Scraping should proceed`);
+  return true;
+}
+
+/**
+ * Update the last run timestamp
+ */
+function updateLastRunTime() {
+  try {
+    fsSync.mkdirSync(path.dirname(LAST_RUN_FILE), { recursive: true });
+    fsSync.writeFileSync(LAST_RUN_FILE, Date.now().toString());
+  } catch (err) {
+    console.error(`[Schedule] Failed to update timestamp: ${err.message}`);
+  }
+}
 
 class NoticeboardScraper {
   constructor() {
@@ -50,21 +133,65 @@ class NoticeboardScraper {
   }
 
   /**
-   * Fetch HTML from a URL with timeout
+   * Fetch HTML from a URL with timeout and enhanced headers
    */
   async fetchHTML(url) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+    // Enhanced headers to look like a real browser
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'DNT': '1',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'max-age=0'
+    };
+
+    // Add referer for non-initial requests
+    if (url !== BASE_URL && !url.endsWith('/')) {
+      headers['Referer'] = BASE_URL;
+    }
+
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers
+      });
       clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.text();
+      const html = await response.text();
+
+      // Detect Cloudflare challenge page
+      if (html.includes('checking your browser') ||
+          (html.includes('cloudflare') && html.includes('challenge'))) {
+        console.error('🚫 CLOUDFLARE CHALLENGE DETECTED');
+        console.error('URL:', url);
+
+        // Save HTML for debugging
+        try {
+          const debugPath = path.join(DATA_DIR, 'cloudflare-block.html');
+          await fs.writeFile(debugPath, html);
+          console.error('Challenge page saved to:', debugPath);
+        } catch (saveErr) {
+          // Ignore save errors
+        }
+
+        throw new Error('Blocked by Cloudflare - challenge page detected');
+      }
+
+      return html;
     } catch (err) {
       clearTimeout(timeout);
       throw err;
@@ -513,20 +640,55 @@ class NoticeboardScraper {
     console.log('  LMRC NOTICEBOARD SCRAPER (Lightweight)');
     console.log('═══════════════════════════════════════════════\n');
 
+    // Check if scraping should run based on schedule
+    if (!shouldRunNow()) {
+      console.log('\n⏰ Skipping scrape - outside configured schedule or too soon since last run\n');
+      return {
+        success: false,
+        skipped: true,
+        reason: 'Outside schedule window or interval not met'
+      };
+    }
+
     const startTime = Date.now();
 
     try {
       await this.init();
 
+      // Scrape gallery with delay
       const galleryData = await this.scrapeGallery();
+      if (CLOUDFLARE_AVOIDANCE.enabled) {
+        const delay = getRandomDelay();
+        console.log(`\n[Throttle] Waiting ${(delay / 1000).toFixed(1)}s before next section...`);
+        await sleep(delay);
+      }
+
+      // Scrape events with delay
       const eventsData = await this.scrapeEvents();
+      if (CLOUDFLARE_AVOIDANCE.enabled) {
+        const delay = getRandomDelay();
+        console.log(`\n[Throttle] Waiting ${(delay / 1000).toFixed(1)}s before next section...`);
+        await sleep(delay);
+      }
+
+      // Scrape news with delay
       const newsData = await this.scrapeNews();
+      if (CLOUDFLARE_AVOIDANCE.enabled) {
+        const delay = getRandomDelay();
+        console.log(`\n[Throttle] Waiting ${(delay / 1000).toFixed(1)}s before next section...`);
+        await sleep(delay);
+      }
+
+      // Scrape sponsors (no delay after last section)
       const sponsorsData = await this.scrapeSponsors();
 
       await this.saveData('gallery-data.json', galleryData);
       await this.saveData('events-data.json', eventsData);
       await this.saveData('news-data.json', newsData);
       await this.saveData('sponsors-data.json', sponsorsData);
+
+      // Update last run timestamp
+      updateLastRunTime();
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
