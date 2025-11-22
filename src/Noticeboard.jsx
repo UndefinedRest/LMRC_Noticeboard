@@ -783,10 +783,14 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
     );
   }
 
-  // Truncate content if too long
+  // Get content (don't truncate HTML as it breaks tags)
   const maxLength = config?.news?.maxContentLength || 2000;
   const content = article.content || article.excerpt || '';
-  const displayContent = content.length > maxLength
+
+  // Only truncate plain text, not HTML content
+  // HTML content (from tables, etc.) should display fully to avoid breaking tags
+  const isHTML = content.includes('<');
+  const displayContent = (!isHTML && content.length > maxLength)
     ? content.substring(0, maxLength) + '...'
     : content;
 
