@@ -6,6 +6,15 @@ A self-updating digital noticeboard for Lake Macquarie Rowing Club, displayed on
 ![Node](https://img.shields.io/badge/node-%3E%3D20.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+> 📚 **Part of the LMRC Digital Solution Suite**
+>
+> This is one component of a multi-project solution. For complete documentation:
+> - **Solution documentation** → See [../docs/](../docs/)
+> - **Architecture overview** → See [../docs/architecture/overview.md](../docs/architecture/overview.md)
+> - **Product roadmap** → See [../docs/planning/roadmap.md](../docs/planning/roadmap.md)
+> - **Deployment to Raspberry Pi** → See [../docs/deployment/production-setup.md](../docs/deployment/production-setup.md)
+> - **Getting started (dev)** → See [../docs/development/getting-started.md](../docs/development/getting-started.md)
+
 ---
 
 ## 📋 Features
