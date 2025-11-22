@@ -663,19 +663,23 @@ class NoticeboardScraper {
     console.log(`[Save] ✓ Saved ${filename}`);
   }
 
-  async scrapeAll() {
+  async scrapeAll(force = false) {
     console.log('═══════════════════════════════════════════════');
     console.log('  LMRC NOTICEBOARD SCRAPER (Lightweight)');
     console.log('═══════════════════════════════════════════════\n');
 
-    // Check if scraping should run based on schedule
-    if (!shouldRunNow()) {
+    // Check if scraping should run based on schedule (unless forced)
+    if (!force && !shouldRunNow()) {
       console.log('\n⏰ Skipping scrape - outside configured schedule or too soon since last run\n');
       return {
         success: false,
         skipped: true,
-        reason: 'Outside schedule window or interval not met'
+        message: 'Outside schedule window or interval not met'
       };
+    }
+
+    if (force) {
+      console.log('[Schedule] ⚡ Manual trigger - bypassing schedule check\n');
     }
 
     const startTime = Date.now();

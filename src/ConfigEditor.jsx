@@ -690,6 +690,17 @@ function ConfigEditor() {
             {/* News */}
             <div data-section="news">
               <Section title="News Settings" icon="📰">
+                <Field label="Max Items to Display" help="Maximum number of news articles to show">
+                  <input
+                    type="number"
+                    value={config.news?.maxItemsToDisplay || 10}
+                    onChange={(e) => updateConfig('news', 'maxItemsToDisplay', parseInt(e.target.value))}
+                    style={styles.input}
+                    min="1"
+                    max="50"
+                  />
+                </Field>
+
                 <Field label="Max Content Length" help="Maximum character count for news content (will truncate)">
                   <input
                     type="number"
@@ -697,7 +708,7 @@ function ConfigEditor() {
                     onChange={(e) => updateConfig('news', 'maxContentLength', parseInt(e.target.value))}
                     style={styles.input}
                     min="100"
-                    max="2000"
+                    max="50000"
                   />
                 </Field>
 

@@ -19,8 +19,9 @@ class ScraperScheduler {
 
   /**
    * Run the scraper
+   * @param {boolean} force - If true, bypass schedule checks
    */
-  async runScraper() {
+  async runScraper(force = false) {
     if (this.isRunning) {
       console.log('[Scheduler] Scraper already running, skipping...');
       return { success: false, message: 'Scraper already running' };
@@ -34,7 +35,7 @@ class ScraperScheduler {
 
     const scraper = new NoticeboardScraper();
     try {
-      const result = await scraper.scrapeAll();
+      const result = await scraper.scrapeAll(force);
       console.log('[Scheduler] Scraper completed successfully');
       this.isRunning = false;
       this.lastResult = { success: true, timestamp: new Date(), ...result };

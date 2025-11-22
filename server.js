@@ -458,11 +458,11 @@ app.get('/api/scraper/status', (req, res) => {
 
 /**
  * POST /api/scraper/trigger
- * Manually trigger scraper run
+ * Manually trigger scraper run (bypasses schedule checks)
  */
 app.post('/api/scraper/trigger', async (req, res) => {
   console.log('[API] Manual scraper trigger requested');
-  const result = await scheduler.runScraper();
+  const result = await scheduler.runScraper(true); // force=true to bypass schedule
   res.json(result);
 });
 
