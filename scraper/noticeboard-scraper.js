@@ -446,12 +446,29 @@ class NoticeboardScraper {
           // Try multiple selectors to find content
           // Extract ALL content types: paragraphs, tables, lists, etc.
           const contentSelectors = [
+            // RevSport specific: target the card content directly
+            '.card.box-shadow-lg',
+            '.card [class*="p"]', // px-4 pt-4, etc.
+
+            // Try article-specific containers first
             'article [class*="content"]',
             'article [class*="body"]',
+            'article [class*="text"]',
             '[class*="article-content"]',
+            '[class*="article-body"]',
+            '[class*="post-content"]',
+            '[class*="entry-content"]',
+
+            // Try wider containers
             'article',
             '.content',
-            'main'
+            '.article',
+            'main',
+
+            // Fallback to main content area
+            '#content',
+            '.main-content',
+            'body'
           ];
 
           let bodyText = '';
@@ -459,55 +476,66 @@ class NoticeboardScraper {
           for (const selector of contentSelectors) {
             const $container = $article(selector).first();
             if ($container.length > 0) {
-              // Extract ALL text content including tables, paragraphs, lists, etc.
-              // Remove script and style tags
-              $container.find('script, style, nav, header, footer, [class*="share"], [class*="social"]').remove();
+              // Clone container and remove unwanted elements
+              const $cleanContainer = $container.clone();
+              $cleanContainer.find('script, style, nav, header, footer, [class*="share"], [class*="social"]').remove();
+              $cleanContainer.find('a').removeAttr('href'); // Remove links but keep text
 
-              // Get all text content
-              const texts = [];
+              // Remove wrapper divs that are just for layout, keep content divs
+              $cleanContainer.find('> div[style*="height"]').remove(); // Remove header background
+              $cleanContainer.find('> div[style*="margin-top"]').remove(); // Remove layout spacers
 
-              // Extract from paragraphs
-              $container.find('p').each((j, elem) => {
-                const text = $article(elem).text().trim();
-                if (text.length > 0) texts.push(text);
-              });
+              // Remove duplicate heading and date (already shown in panel)
+              $cleanContainer.find('h1').remove(); // Remove article title
+              $cleanContainer.find('h2').first().remove(); // Remove potential subtitle heading
+              $cleanContainer.find(':contains("Published")').filter(function() {
+                // Only remove elements that start with "Published" (date line)
+                return $article(this).text().trim().startsWith('Published');
+              }).remove();
+              $cleanContainer.find('hr').first().remove(); // Remove first hr separator after title
 
-              // Extract from tables (important for race results!)
-              $container.find('table').each((j, elem) => {
-                const $table = $article(elem);
-                const rows = [];
-                $table.find('tr').each((i, row) => {
-                  const $row = $article(row);
-                  const cells = [];
-                  $row.find('th, td').each((k, cell) => {
-                    const cellText = $article(cell).text().trim();
-                    if (cellText.length > 0) cells.push(cellText);
-                  });
-                  if (cells.length > 0) rows.push(cells.join(' - '));
-                });
-                if (rows.length > 0) texts.push(rows.join('\n'));
-              });
+              // Extract HTML content preserving structure
+              // For tables, headings, lists - keep the HTML format
+              const contentHtml = $cleanContainer.html();
 
-              // Extract from lists
-              $container.find('ul, ol').each((j, elem) => {
-                const $list = $article(elem);
-                const items = [];
-                $list.find('li').each((i, li) => {
-                  const itemText = $article(li).text().trim();
-                  if (itemText.length > 0) items.push(itemText);
-                });
-                if (items.length > 0) texts.push(items.join('\n'));
-              });
+              if (contentHtml && contentHtml.trim().length > 50) {
+                // Clean up excessive whitespace but preserve structure
+                bodyText = contentHtml
+                  .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove excessive line breaks
+                  .replace(/<!--.*?-->/g, '') // Remove HTML comments
+                  .trim();
 
-              // If we didn't find structured content, just get all text
-              if (texts.length === 0) {
-                bodyText = $container.text().trim();
-              } else {
-                bodyText = texts.join('\n\n');
+                // Stop if we found substantial content
+                break;
               }
+            }
+          }
 
-              // Stop if we found substantial content
-              if (bodyText.length > 50) break;
+          // Fallback: If we didn't find substantial content, try full page extraction
+          if (bodyText.length < 100) {
+            // Clone the body and remove unwanted elements
+            const $body = $article('body').clone();
+
+            // Remove navigation, headers, footers, scripts, styles
+            $body.find('nav, header, footer, [class*="nav"], [class*="menu"], [class*="sidebar"]').remove();
+            $body.find('[class*="share"], [class*="social"], [class*="comment"]').remove();
+            $body.find('script, style, noscript').remove();
+            $body.find('a').removeAttr('href'); // Remove links
+
+            // Remove duplicate heading and date (already shown in panel)
+            $body.find('h1').remove();
+            $body.find('h2').first().remove();
+            $body.find(':contains("Published")').filter(function() {
+              return $article(this).text().trim().startsWith('Published');
+            }).remove();
+            $body.find('hr').first().remove();
+
+            // Get HTML content (preserving structure)
+            const fullPageHtml = $body.html();
+
+            // Only use if it's substantially more content
+            if (fullPageHtml && fullPageHtml.length > bodyText.length + 100) {
+              bodyText = fullPageHtml.trim();
             }
           }
 
@@ -517,7 +545,7 @@ class NoticeboardScraper {
             contentLength: bodyText.length
           });
 
-          console.log(`  ✓ ${bodyText.length} chars`);
+          console.log(`  ✓ Final content: ${bodyText.length} chars`);
 
         } catch (err) {
           console.error(`  ✗ Error: ${err.message}`);

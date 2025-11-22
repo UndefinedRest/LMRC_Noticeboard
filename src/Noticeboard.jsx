@@ -838,15 +838,10 @@ function RightPanel({ article, articleIndex, totalArticles, colors, config, widt
 
         {/* Article Content */}
         <div
-          className="leading-relaxed opacity-90"
+          className="leading-relaxed opacity-90 news-content"
           style={{ fontSize: `${fontSize('lg')}px` }}
-        >
-          {displayContent.split('\n\n').map((paragraph, idx) => (
-            <p key={idx} className="mb-3">
-              {paragraph}
-            </p>
-          ))}
-        </div>
+          dangerouslySetInnerHTML={{ __html: displayContent }}
+        />
 
         {/* Type Badge */}
         {article.type === 'result' && (

@@ -38,3 +38,53 @@ body.kiosk {
   opacity: 0;
   transition: opacity 500ms;
 }
+
+/* News Content Styling */
+.news-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.news-content table td,
+.news-content table th {
+  padding: 0.5rem;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+.news-content table th {
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.news-content h1,
+.news-content h2,
+.news-content h3,
+.news-content h4 {
+  margin: 1rem 0 0.5rem 0;
+  font-weight: bold;
+  color: inherit;
+}
+
+.news-content p {
+  margin: 0.5rem 0;
+}
+
+.news-content hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.news-content strong {
+  font-weight: bold;
+}
+
+.news-content a {
+  color: inherit;
+  text-decoration: none;
+}
