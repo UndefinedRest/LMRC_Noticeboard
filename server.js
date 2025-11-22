@@ -263,6 +263,7 @@ app.get('/api/config', async (req, res) => {
     branding: config.branding,
     socialMedia: config.socialMedia,
     sponsors: config.sponsors,
+    news: config.news,
     weather: {
       location: config.weather?.location,
       bomStationId: config.weather?.bomStationId

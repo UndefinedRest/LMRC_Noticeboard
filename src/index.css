@@ -44,13 +44,13 @@ body.kiosk {
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
-  font-size: inherit;
+  font-size: 0.7em; /* Smaller font for tables to fit more content */
   color: inherit;
 }
 
 .news-content table td,
 .news-content table th {
-  padding: 0.5rem;
+  padding: 0.3rem 0.4rem; /* Reduced padding to fit more rows */
   text-align: left;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: inherit;
