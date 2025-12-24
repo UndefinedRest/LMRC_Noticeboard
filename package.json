@@ -13,7 +13,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "setup": "node scripts/setup.js",
-    "test": "node scripts/test-scraper.js"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:scraper:old": "node scripts/test-scraper.js"
   },
   "keywords": [
     "noticeboard",
@@ -31,12 +36,18 @@
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "concurrently": "^8.2.2",
+    "jsdom": "^27.3.0",
     "nodemon": "^3.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "terser": "^5.44.0",
-    "vite": "^7.1.10"
+    "vite": "^7.1.10",
+    "vitest": "^4.0.16"
   }
 }
